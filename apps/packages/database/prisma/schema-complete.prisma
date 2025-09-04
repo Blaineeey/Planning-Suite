@@ -1,0 +1,336 @@
+model Lead {
+  id             String         @id @default(cuid())
+  organizationId String
+  organization   Organization   @relation(fields: [organizationId], references: [id])
+  
+  firstName      String
+  lastName       String
+  email          String
+  phone          String?
+  source         String?        // website, referral, social, etc.
+  sourceDetails  String?
+  tags           String[]       @default([])
+  
+  eventDate      DateTime?
+  eventType      String?        // wedding, corporate, etc.
+  budget         Decimal?       @db.Decimal(10, 2)
+  guestCount     Int?
+  venue          String?
+  notes          String?        @db.Text
+  
+  stage          LeadStage      @default(NEW)
+  status         LeadStatus     @default(ACTIVE)
+  assignedTo     String?
+  assignedUser   User?          @relation(fields: [assignedTo], references: [id])
+  
+  convertedAt    DateTime?
+  convertedToId  String?
+  convertedTo    Project?       @relation(fields: [convertedToId], references: [id])
+  
+  activities     Activity[]
+  
+  createdAt      DateTime       @default(now())
+  updatedAt      DateTime       @updatedAt
+  
+  @@index([organizationId, stage])
+  @@index([email])
+}
+
+enum LeadStage {
+  NEW
+  CONTACTED
+  QUALIFIED
+  PROPOSAL
+  NEGOTIATION
+  CONVERTED
+  LOST
+}
+
+enum LeadStatus {
+  ACTIVE
+  ARCHIVED
+}
+
+model Proposal {
+  id             String         @id @default(cuid())
+  projectId      String?
+  project        Project?       @relation(fields: [projectId], references: [id])
+  leadId         String?
+  
+  number         String         @unique
+  title          String
+  validUntil     DateTime
+  
+  items          ProposalItem[]
+  subtotal       Decimal        @db.Decimal(10, 2)
+  tax            Decimal        @db.Decimal(10, 2)
+  discount       Decimal        @db.Decimal(10, 2)
+  total          Decimal        @db.Decimal(10, 2)
+  
+  terms          String?        @db.Text
+  notes          String?        @db.Text
+  
+  status         ProposalStatus @default(DRAFT)
+  sentAt         DateTime?
+  viewedAt       DateTime?
+  acceptedAt     DateTime?
+  declinedAt     DateTime?
+  
+  signature      String?
+  signedBy       String?
+  
+  createdAt      DateTime       @default(now())
+  updatedAt      DateTime       @updatedAt
+}
+
+model ProposalItem {
+  id          String    @id @default(cuid())
+  proposalId  String
+  proposal    Proposal  @relation(fields: [proposalId], references: [id], onDelete: Cascade)
+  
+  name        String
+  description String?
+  quantity    Int
+  price       Decimal   @db.Decimal(10, 2)
+  total       Decimal   @db.Decimal(10, 2)
+  
+  order       Int
+}
+
+enum ProposalStatus {
+  DRAFT
+  SENT
+  VIEWED
+  ACCEPTED
+  DECLINED
+  EXPIRED
+}
+
+model Contract {
+  id             String         @id @default(cuid())
+  projectId      String
+  project        Project        @relation(fields: [projectId], references: [id])
+  
+  number         String         @unique
+  title          String
+  content        String         @db.Text // HTML content
+  
+  status         ContractStatus @default(DRAFT)
+  sentAt         DateTime?
+  viewedAt       DateTime?
+  signedAt       DateTime?
+  
+  clientSignature    String?
+  clientSignedBy     String?
+  clientSignedAt     DateTime?
+  clientIp           String?
+  
+  vendorSignature    String?
+  vendorSignedBy     String?
+  vendorSignedAt     DateTime?
+  
+  documentUrl        String?
+  
+  createdAt      DateTime       @default(now())
+  updatedAt      DateTime       @updatedAt
+}
+
+enum ContractStatus {
+  DRAFT
+  SENT
+  VIEWED
+  PARTIALLY_SIGNED
+  SIGNED
+  CANCELLED
+}
+
+model Invoice {
+  id             String         @id @default(cuid())
+  projectId      String
+  project        Project        @relation(fields: [projectId], references: [id])
+  
+  number         String         @unique
+  dueDate        DateTime
+  
+  items          InvoiceItem[]
+  subtotal       Decimal        @db.Decimal(10, 2)
+  tax            Decimal        @db.Decimal(10, 2)
+  discount       Decimal        @db.Decimal(10, 2)
+  total          Decimal        @db.Decimal(10, 2)
+  
+  status         InvoiceStatus  @default(DRAFT)
+  sentAt         DateTime?
+  paidAt         DateTime?
+  
+  payments       Payment[]
+  
+  notes          String?        @db.Text
+  terms          String?        @db.Text
+  
+  createdAt      DateTime       @default(now())
+  updatedAt      DateTime       @updatedAt
+}
+
+model InvoiceItem {
+  id          String    @id @default(cuid())
+  invoiceId   String
+  invoice     Invoice   @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
+  
+  name        String
+  description String?
+  quantity    Int
+  price       Decimal   @db.Decimal(10, 2)
+  total       Decimal   @db.Decimal(10, 2)
+  
+  order       Int
+}
+
+enum InvoiceStatus {
+  DRAFT
+  SENT
+  VIEWED
+  PARTIALLY_PAID
+  PAID
+  OVERDUE
+  CANCELLED
+}
+
+model Payment {
+  id          String        @id @default(cuid())
+  invoiceId   String
+  invoice     Invoice       @relation(fields: [invoiceId], references: [id])
+  
+  amount      Decimal       @db.Decimal(10, 2)
+  method      PaymentMethod
+  status      PaymentStatus
+  
+  stripePaymentIntentId  String?
+  paypalOrderId          String?
+  
+  processedAt DateTime?
+  failedAt    DateTime?
+  refundedAt  DateTime?
+  
+  metadata    Json?
+  
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
+}
+
+enum PaymentMethod {
+  STRIPE
+  PAYPAL
+  ACH
+  CHECK
+  CASH
+}
+
+enum PaymentStatus {
+  PENDING
+  PROCESSING
+  COMPLETED
+  FAILED
+  REFUNDED
+}
+
+// Project Management Models
+model Task {
+  id             String      @id @default(cuid())
+  projectId      String
+  project        Project     @relation(fields: [projectId], references: [id])
+  
+  title          String
+  description    String?     @db.Text
+  priority       Priority    @default(MEDIUM)
+  status         TaskStatus  @default(TODO)
+  
+  assignedTo     String?
+  assignedUser   User?       @relation(fields: [assignedTo], references: [id])
+  
+  dueDate        DateTime?
+  completedAt    DateTime?
+  
+  checklistId    String?
+  checklist      Checklist?  @relation(fields: [checklistId], references: [id])
+  
+  dependencies   Task[]      @relation("TaskDependencies")
+  dependents     Task[]      @relation("TaskDependencies")
+  
+  attachments    Attachment[]
+  comments       Comment[]
+  
+  order          Int         @default(0)
+  
+  createdAt      DateTime    @default(now())
+  updatedAt      DateTime    @updatedAt
+  
+  @@index([projectId, status])
+}
+
+enum Priority {
+  LOW
+  MEDIUM
+  HIGH
+  URGENT
+}
+
+enum TaskStatus {
+  TODO
+  IN_PROGRESS
+  REVIEW
+  COMPLETED
+  BLOCKED
+}
+
+model Checklist {
+  id             String      @id @default(cuid())
+  name           String
+  description    String?
+  isTemplate     Boolean     @default(false)
+  
+  organizationId String
+  projectId      String?
+  project        Project?    @relation(fields: [projectId], references: [id])
+  
+  tasks          Task[]
+  
+  createdAt      DateTime    @default(now())
+  updatedAt      DateTime    @updatedAt
+}
+
+model TimelineItem {
+  id          String      @id @default(cuid())
+  projectId   String
+  project     Project     @relation(fields: [projectId], references: [id])
+  
+  time        DateTime
+  duration    Int         // in minutes
+  title       String
+  description String?     @db.Text
+  location    String?
+  
+  category    String      // ceremony, reception, photos, etc.
+  
+  vendors     TimelineVendor[]
+  notes       String?     @db.Text
+  
+  order       Int         @default(0)
+  
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
+  
+  @@index([projectId, time])
+}
+
+model TimelineVendor {
+  id             String        @id @default(cuid())
+  timelineItemId String
+  timelineItem   TimelineItem  @relation(fields: [timelineItemId], references: [id], onDelete: Cascade)
+  vendorId       String
+  vendor         Vendor        @relation(fields: [vendorId], references: [id])
+  
+  role           String        // photographer, DJ, florist, etc.
+  notes          String?
+  
+  @@unique([timelineItemId, vendorId])
+}

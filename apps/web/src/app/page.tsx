@@ -1,102 +1,189 @@
-import Image from "next/image";
+'use client';
+
+import { useState, useEffect } from 'react';
 
 export default function Home() {
-  return (
-    <div className="font-sans grid grid-rows-[20px_1fr_20px] items-center justify-items-center min-h-screen p-8 pb-20 gap-16 sm:p-20">
-      <main className="flex flex-col gap-[32px] row-start-2 items-center sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={180}
-          height={38}
-          priority
-        />
-        <ol className="font-mono list-inside list-decimal text-sm/6 text-center sm:text-left">
-          <li className="mb-2 tracking-[-.01em]">
-            Get started by editing{" "}
-            <code className="bg-black/[.05] dark:bg-white/[.06] font-mono font-semibold px-1 py-0.5 rounded">
-              src/app/page.tsx
-            </code>
-            .
-          </li>
-          <li className="tracking-[-.01em]">
-            Save and see your changes instantly.
-          </li>
-        </ol>
+  const [apiStatus, setApiStatus] = useState('checking');
+  const [apiData, setApiData] = useState(null);
 
-        <div className="flex gap-4 items-center flex-col sm:flex-row">
-          <a
-            className="rounded-full border border-solid border-transparent transition-colors flex items-center justify-center bg-foreground text-background gap-2 hover:bg-[#383838] dark:hover:bg-[#ccc] font-medium text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 sm:w-auto"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={20}
-              height={20}
-            />
-            Deploy now
-          </a>
-          <a
-            className="rounded-full border border-solid border-black/[.08] dark:border-white/[.145] transition-colors flex items-center justify-center hover:bg-[#f2f2f2] dark:hover:bg-[#1a1a1a] hover:border-transparent font-medium text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 w-full sm:w-auto md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Read our docs
-          </a>
+  useEffect(() => {
+    checkAPI();
+  }, []);
+
+  const checkAPI = async () => {
+    try {
+      const response = await fetch('http://localhost:3001/health');
+      if (response.ok) {
+        const data = await response.json();
+        setApiStatus('connected');
+        setApiData(data);
+      } else {
+        setApiStatus('error');
+      }
+    } catch (error) {
+      setApiStatus('error');
+    }
+  };
+
+  return (
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-purple-50">
+      {/* Header */}
+      <header className="bg-white shadow-sm border-b">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center space-x-3">
+              <div className="w-10 h-10 bg-blue-600 rounded-lg flex items-center justify-center">
+                <span className="text-white font-bold text-xl">RB</span>
+              </div>
+              <h1 className="text-2xl font-bold text-gray-900">Ruban Bleu Planning Suite</h1>
+            </div>
+            <div className="flex items-center space-x-2">
+              <span className="text-sm text-gray-500">API Status:</span>
+              <span className={`px-2 py-1 rounded text-xs font-semibold ${
+                apiStatus === 'connected' ? 'bg-green-100 text-green-800' : 
+                apiStatus === 'error' ? 'bg-red-100 text-red-800' : 
+                'bg-yellow-100 text-yellow-800'
+              }`}>
+                {apiStatus === 'connected' ? '✓ Connected' : 
+                 apiStatus === 'error' ? '✗ Disconnected' : 
+                 '⟳ Checking...'}
+              </span>
+            </div>
+          </div>
         </div>
-      </main>
-      <footer className="row-start-3 flex gap-[24px] flex-wrap items-center justify-center">
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/file.svg"
-            alt="File icon"
-            width={16}
-            height={16}
-          />
-          Learn
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/window.svg"
-            alt="Window icon"
-            width={16}
-            height={16}
-          />
-          Examples
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/globe.svg"
-            alt="Globe icon"
-            width={16}
-            height={16}
-          />
-          Go to nextjs.org →
-        </a>
+      </header>
+
+      {/* Hero Section */}
+      <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
+        <div className="text-center">
+          <h2 className="text-4xl font-bold text-gray-900 mb-4">
+            Welcome to Your All-in-One Wedding Planning Platform
+          </h2>
+          <p className="text-xl text-gray-600 mb-8">
+            Manage clients, projects, vendors, and create beautiful wedding websites
+          </p>
+          <div className="flex justify-center space-x-4">
+            <button 
+              onClick={() => window.location.href = '/login'}
+              className="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition"
+            >
+              Get Started
+            </button>
+            <button 
+              onClick={checkAPI}
+              className="px-6 py-3 bg-white border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition"
+            >
+              Test API Connection
+            </button>
+          </div>
+        </div>
+      </section>
+
+      {/* Features Grid */}
+      <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {[
+            {
+              title: 'CRM & Sales',
+              description: 'Manage leads, proposals, contracts, and invoices',
+              icon: '📊',
+              status: 'Ready'
+            },
+            {
+              title: 'Project Management',
+              description: 'Tasks, timelines, budgets, and vendor coordination',
+              icon: '📅',
+              status: 'Ready'
+            },
+            {
+              title: 'Wedding Websites',
+              description: 'Beautiful custom websites with RSVP management',
+              icon: '💒',
+              status: 'Ready'
+            },
+            {
+              title: 'Guest Management',
+              description: 'Guest lists, RSVPs, seating charts, and meal preferences',
+              icon: '👥',
+              status: 'Coming Soon'
+            },
+            {
+              title: 'Vendor Directory',
+              description: 'Searchable database of trusted vendors',
+              icon: '🏪',
+              status: 'Coming Soon'
+            },
+            {
+              title: 'Digital Shop',
+              description: 'Sell templates, checklists, and digital products',
+              icon: '🛍️',
+              status: 'Coming Soon'
+            }
+          ].map((feature, index) => (
+            <div key={index} className="bg-white rounded-lg shadow-sm border p-6 hover:shadow-md transition">
+              <div className="flex items-start justify-between mb-4">
+                <span className="text-3xl">{feature.icon}</span>
+                <span className={`px-2 py-1 rounded text-xs font-semibold ${
+                  feature.status === 'Ready' ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-600'
+                }`}>
+                  {feature.status}
+                </span>
+              </div>
+              <h3 className="text-lg font-semibold text-gray-900 mb-2">{feature.title}</h3>
+              <p className="text-gray-600">{feature.description}</p>
+            </div>
+          ))}
+        </div>
+      </section>
+
+      {/* API Test Section */}
+      {apiData && (
+        <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+          <div className="bg-white rounded-lg shadow-sm border p-6">
+            <h3 className="text-lg font-semibold mb-4">API Response:</h3>
+            <pre className="bg-gray-50 p-4 rounded overflow-x-auto">
+              {JSON.stringify(apiData, null, 2)}
+            </pre>
+          </div>
+        </section>
+      )}
+
+      {/* Quick Links */}
+      <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+        <h3 className="text-2xl font-bold text-gray-900 mb-6">Quick Links</h3>
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+          {[
+            { name: 'Dashboard', href: '/dashboard', icon: '🏠' },
+            { name: 'Projects', href: '/projects', icon: '📁' },
+            { name: 'Clients', href: '/clients', icon: '👤' },
+            { name: 'Calendar', href: '/calendar', icon: '📅' },
+            { name: 'Invoices', href: '/invoices', icon: '💰' },
+            { name: 'Vendors', href: '/vendors', icon: '🏢' },
+            { name: 'Settings', href: '/settings', icon: '⚙️' },
+            { name: 'Help', href: '/help', icon: '❓' }
+          ].map((link) => (
+            <a
+              key={link.name}
+              href={link.href}
+              className="flex items-center space-x-3 p-4 bg-white rounded-lg border hover:border-blue-500 hover:shadow-sm transition"
+            >
+              <span className="text-2xl">{link.icon}</span>
+              <span className="font-medium text-gray-900">{link.name}</span>
+            </a>
+          ))}
+        </div>
+      </section>
+
+      {/* Footer */}
+      <footer className="bg-gray-50 border-t mt-16">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+          <div className="text-center text-gray-600">
+            <p>© 2024 Ruban Bleu Planning Suite. All rights reserved.</p>
+            <p className="mt-2 text-sm">
+              API: http://localhost:3001 | Web: http://localhost:3000
+            </p>
+          </div>
+        </div>
       </footer>
     </div>
   );

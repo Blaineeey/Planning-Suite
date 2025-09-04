@@ -1,0 +1,265 @@
+model WeddingWebsite {
+  id          String      @id @default(cuid())
+  projectId   String      @unique
+  project     Project     @relation(fields: [projectId], references: [id])
+  
+  subdomain   String      @unique
+  isPublished Boolean     @default(false)
+  isPrivate   Boolean     @default(false)
+  passcode    String?
+  
+  // Design Settings
+  theme       String      @default('elegant')
+  primaryColor String     @default('#2563eb')
+  secondaryColor String   @default('#f59e0b')
+  fontFamily  String      @default('Inter')
+  
+  // Content
+  coupleNames String
+  date        DateTime
+  venue       String
+  story       String?     @db.Text
+  heroImage   String?
+  gallery     String[]    @default([])
+  
+  // Pages
+  pages       WebsitePage[]
+  
+  // SEO
+  metaTitle   String?
+  metaDescription String?
+  
+  // Analytics
+  views       Int         @default(0)
+  lastViewed  DateTime?
+  
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
+}
+
+model WebsitePage {
+  id          String      @id @default(cuid())
+  websiteId   String
+  website     WeddingWebsite @relation(fields: [websiteId], references: [id], onDelete: Cascade)
+  
+  slug        String
+  title       String
+  content     Json        // Rich content blocks
+  isVisible   Boolean     @default(true)
+  order       Int         @default(0)
+  
+  @@unique([websiteId, slug])
+}
+
+model Guest {
+  id          String      @id @default(cuid())
+  projectId   String
+  project     Project     @relation(fields: [projectId], references: [id])
+  
+  firstName   String
+  lastName    String
+  email       String?
+  phone       String?
+  
+  householdId String?
+  household   Household?  @relation(fields: [householdId], references: [id])
+  
+  isPlusOne   Boolean     @default(false)
+  isChild     Boolean     @default(false)
+  
+  rsvp        RSVP?
+  seat        Seat?
+  
+  tags        String[]    @default([])
+  notes       String?
+  
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
+  
+  @@index([projectId, householdId])
+}
+
+model Household {
+  id          String      @id @default(cuid())
+  projectId   String
+  name        String
+  
+  address     String?
+  city        String?
+  state       String?
+  zip         String?
+  country     String?
+  
+  guests      Guest[]
+  inviteCode  String      @unique @default(cuid())
+  inviteSentAt DateTime?
+  
+  maxGuests   Int         @default(2)
+  
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
+}
+
+model RSVP {
+  id          String      @id @default(cuid())
+  guestId     String      @unique
+  guest       Guest       @relation(fields: [guestId], references: [id])
+  
+  attending   Boolean?
+  mealChoice  String?
+  dietaryRestrictions String?
+  
+  respondedAt DateTime?
+  reminderSentAt DateTime?
+  
+  // Tracking
+  ipAddress   String?
+  userAgent   String?
+  
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
+}
+
+model Seat {
+  id          String      @id @default(cuid())
+  guestId     String      @unique
+  guest       Guest       @relation(fields: [guestId], references: [id])
+  
+  tableId     String
+  table       Table       @relation(fields: [tableId], references: [id])
+  
+  seatNumber  Int?
+  
+  @@unique([tableId, seatNumber])
+}
+
+model Table {
+  id          String      @id @default(cuid())
+  projectId   String
+  
+  name        String
+  capacity    Int
+  shape       TableShape  @default(ROUND)
+  
+  seats       Seat[]
+  
+  x           Float?      // Position for visual seating chart
+  y           Float?
+  
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
+  
+  @@unique([projectId, name])
+}
+
+enum TableShape {
+  ROUND
+  RECTANGLE
+  SQUARE
+  OVAL
+}
+
+// apps/api/src/modules/wedding-website/website.service.ts
+import { PrismaClient } from '@prisma/client';
+import { z } from 'zod';
+import slugify from 'slugify';
+import { AppError } from '../../utils/errors';
+
+const prisma = new PrismaClient();
+
+export const CreateWebsiteSchema = z.object({
+  theme: z.string().optional(),
+  primaryColor: z.string().optional(),
+  secondaryColor: z.string().optional(),
+  fontFamily: z.string().optional(),
+  coupleNames: z.string(),
+  date: z.string().datetime(),
+  venue: z.string(),
+  story: z.string().optional(),
+  isPrivate: z.boolean().optional(),
+  passcode: z.string().optional()
+});
+
+export class WebsiteService {
+  async create(projectId: string, data: z.infer<typeof CreateWebsiteSchema>) {
+    const validated = CreateWebsiteSchema.parse(data);
+    
+    // Check if website already exists
+    const existing = await prisma.weddingWebsite.findUnique({
+      where: { projectId }
+    });
+    
+    if (existing) {
+      throw new AppError('Website already exists for this project', 409);
+    }
+    
+    // Generate unique subdomain
+    const baseSubdomain = slugify(validated.coupleNames, { lower: true });
+    let subdomain = baseSubdomain;
+    let counter = 1;
+    
+    while (await prisma.weddingWebsite.findUnique({ where: { subdomain } })) {
+      subdomain = `${baseSubdomain}-${counter}`;
+      counter++;
+    }
+    
+    // Create website with default pages
+    const website = await prisma.weddingWebsite.create({
+      data: {
+        ...validated,
+        projectId,
+        subdomain,
+        date: new Date(validated.date),
+        pages: {
+          create: [
+            {
+              slug: 'home',
+              title: 'Home',
+              content: this.getDefaultPageContent('home'),
+              order: 0
+            },
+            {
+              slug: 'our-story',
+              title: 'Our Story',
+              content: this.getDefaultPageContent('story'),
+              order: 1
+            },
+            {
+              slug: 'schedule',
+              title: 'Schedule',
+              content: this.getDefaultPageContent('schedule'),
+              order: 2
+            },
+            {
+              slug: 'travel',
+              title: 'Travel',
+              content: this.getDefaultPageContent('travel'),
+              order: 3
+            },
+            {
+              slug: 'registry',
+              title: 'Registry',
+              content: this.getDefaultPageContent('registry'),
+              order: 4
+            },
+            {
+              slug: 'rsvp',
+              title: 'RSVP',
+              content: this.getDefaultPageContent('rsvp'),
+              order: 5
+            }
+          ]
+        }
+      },
+      include: {
+        pages: true
+      }
+    });
+    
+    return website;
+  }
+  
+  async publish(websiteId: string) {
+    const website = await prisma.weddingWebsite.update({
+      where: { id: websiteId },
+      data: { isPublishe

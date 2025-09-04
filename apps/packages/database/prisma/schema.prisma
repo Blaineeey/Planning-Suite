@@ -1,15 +1,104 @@
-// This is your Prisma schema file,
-// learn more about it in the docs: https://pris.ly/d/prisma-schema
-
-// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
-// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
-
+// packages/database/prisma/schema.prisma
 generator client {
   provider = "prisma-client-js"
-  output   = "../generated/prisma"
 }
 
 datasource db {
   provider = "postgresql"
   url      = env("DATABASE_URL")
+}
+
+enum UserRole {
+  OWNER
+  ADMIN
+  PLANNER
+  CLIENT
+  VENDOR
+  GUEST
+}
+
+enum ProjectStatus {
+  LEAD
+  DISCOVERY
+  PROPOSAL_SENT
+  CONTRACTED
+  ACTIVE
+  COMPLETED
+  CANCELLED
+}
+
+model Organization {
+  id        String   @id @default(cuid())
+  name      String
+  slug      String   @unique
+  logo      String?
+  settings  Json     @default("{}")
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  
+  users     User[]
+  projects  Project[]
+  vendors   Vendor[]
+  products  Product[]
+}
+
+model Project {
+  id             String        @id @default(cuid())
+  name           String
+  status         ProjectStatus
+  eventDate      DateTime?
+  organizationId String
+  organization   Organization  @relation(fields: [organizationId], references: [id])
+  plannerId      String
+  planner        User          @relation(fields: [plannerId], references: [id])
+  
+  proposals      Proposal[]
+  contracts      Contract[]
+  invoices       Invoice[]
+  tasks          Task[]
+  timeline       TimelineItem[]
+  guests         Guest[]
+  budget         BudgetItem[]
+  website        WeddingWebsite?
+  
+  createdAt      DateTime      @default(now())
+  updatedAt      DateTime      @updatedAt
+}
+
+model User {
+  id             String    @id @default(cuid())
+  email          String    @unique
+  password       String
+  firstName      String
+  lastName       String
+  role           UserRole
+  emailVerified  Boolean   @default(false)
+  organizationId String?
+  organization   Organization? @relation(fields: [organizationId], references: [id])
+  
+  sessions       Session[]
+  refreshTokens  RefreshToken[]
+  
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+}
+
+model Session {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  token     String   @unique
+  expiresAt DateTime
+  userAgent String?
+  ip        String?
+  createdAt DateTime @default(now())
+}
+
+model RefreshToken {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  token     String   @unique
+  expiresAt DateTime
+  createdAt DateTime @default(now())
 }
