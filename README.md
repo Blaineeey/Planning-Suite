@@ -1,199 +1,152 @@
-# Ruban Bleu Planning Suite - Setup Instructions
+# Ruban Bleu Planning Suite
+
+A comprehensive event planning platform with CRM, project management, guest management, vendor directory, website generator, and digital shop.
 
 ## 🚀 Quick Start
 
 ### Prerequisites
-- Node.js 20+ and npm/pnpm
-- Docker and Docker Compose
-- PostgreSQL (or use Docker)
-- Redis (or use Docker)
+- Node.js 20+ 
+- npm or yarn
 
-### Step 1: Install Dependencies
+### Installation
 
+1. Clone the repository:
 ```bash
-# Install pnpm globally if not installed
-npm install -g pnpm
-
-# Install all dependencies
-pnpm install
+git clone <repository-url>
+cd Planning-Suite
 ```
 
-### Step 2: Set Up Environment Variables
-
+2. Install dependencies for both frontend and backend:
 ```bash
-# Copy the example environment file
-cp .env.example .env
+# Install API dependencies
+cd apps/api
+npm install
 
-# Edit .env with your actual values
-# At minimum, update:
-# - DATABASE_URL
-# - JWT_SECRET
-# - JWT_REFRESH_SECRET
+# Install Web dependencies  
+cd ../web
+npm install
 ```
 
-### Step 3: Start Database Services
+### Running the Application
 
+#### Option 1: Using the Start Script (Windows)
+Simply double-click `start-dev.bat` in the root directory or run:
 ```bash
-# Start PostgreSQL and Redis using Docker
-docker-compose up -d postgres redis
-
-# Or if you have them installed locally, ensure they're running
+start-dev.bat
 ```
 
-### Step 4: Set Up Database
+#### Option 2: Manual Start
 
+1. Start the API server (in one terminal):
 ```bash
-# Navigate to database package
-cd packages/database
-
-# Generate Prisma client
-pnpm prisma generate
-
-# Run migrations
-pnpm prisma migrate dev --name init
-
-# (Optional) Seed database with sample data
-pnpm prisma db seed
+cd apps/api
+npm start
 ```
+The API will run on http://localhost:3001
 
-### Step 5: Start Development Servers
-
+2. Start the Web frontend (in another terminal):
 ```bash
-# From root directory, start all services
-pnpm dev
-
-# Or start individually:
-# API only
-cd apps/api && pnpm dev
-
-# Web only  
-cd apps/web && pnpm dev
+cd apps/web
+npm run dev
 ```
+The frontend will run on http://localhost:3000
 
-## 📍 Access Points
+## 🔐 Demo Credentials
 
-- **Web Application**: http://localhost:3000
-- **API Server**: http://localhost:3001
-- **API Health Check**: http://localhost:3001/health
-- **Database GUI**: `pnpm --filter database studio`
+- **Email:** demo@example.com
+- **Password:** demo123
 
-## 🏗️ Project Structure
+## 🧪 Testing the Connection
+
+1. Open http://localhost:3000 in your browser
+2. Click "Test API Connection" on the login page to verify the backend is running
+3. Log in with the demo credentials
+
+## 📁 Project Structure
 
 ```
-ruban-bleu/
+Planning-Suite/
 ├── apps/
-│   ├── api/          # Express.js API server
-│   └── web/          # Next.js web application
-├── packages/
-│   ├── database/     # Prisma ORM and database schema
-│   ├── shared/       # Shared utilities
-│   └── ui/           # Shared UI components
-├── docker-compose.yml
-└── .env
+│   ├── api/          # Backend API (Express.js)
+│   │   ├── models/   # Database models
+│   │   ├── routes/   # API routes
+│   │   └── server.js # Main server file
+│   └── web/          # Frontend (Next.js)
+│       ├── src/
+│       │   ├── app/      # Pages and routes
+│       │   ├── components/
+│       │   ├── lib/      # API client
+│       │   └── store/    # State management
+│       └── package.json
+├── start-dev.bat     # Development startup script
+└── README.md
 ```
 
-## 🔧 Common Commands
+## 🎨 Features
 
-```bash
-# Database
-pnpm db:migrate       # Run migrations
-pnpm db:studio        # Open Prisma Studio
-pnpm db:seed          # Seed database
+### Core Modules
+- ✅ **CRM & Sales** - Lead management, proposals, contracts, invoices
+- ✅ **Project Management** - Wedding planning tools, checklists, timelines
+- ✅ **Guest Management** - RSVP, seating charts, meal preferences
+- ✅ **Vendor Directory** - Vendor portal, reviews, bookings
+- ✅ **Website Generator** - Custom wedding websites with RSVP
+- ✅ **Digital Shop** - Sell templates and digital products
+- ✅ **Automations** - Workflow automation and email templates
 
-# Development
-pnpm dev              # Start all services
-pnpm build            # Build all services
-pnpm lint             # Run linting
-pnpm test             # Run tests
+## 🛠️ Technology Stack
 
-# Docker
-docker-compose up -d  # Start services
-docker-compose down   # Stop services
-docker-compose logs   # View logs
+### Frontend
+- Next.js 15
+- React 19
+- TailwindCSS
+- Zustand (State Management)
+
+### Backend  
+- Node.js
+- Express.js
+- JWT Authentication
+- In-memory database (development)
+- bcrypt for password hashing
+
+## 🔧 Troubleshooting
+
+### Cannot connect to API
+- Ensure the API server is running on port 3001
+- Check if another application is using port 3001
+- Verify the `.env` file exists in `apps/api/`
+
+### Login not working
+- Make sure both servers are running
+- Check browser console for errors
+- Verify you're using the correct credentials
+
+### Input text not visible
+- This has been fixed with proper CSS styling
+- Clear browser cache if the issue persists
+
+## 📝 Environment Variables
+
+### API (.env)
+```
+PORT=3001
+NODE_ENV=development
+JWT_SECRET=development-secret-key-change-in-production
 ```
 
-## 🐛 Troubleshooting
-
-### Port Already in Use
-```bash
-# Kill process on port 3000 (Windows)
-netstat -ano | findstr :3000
-taskkill /PID <PID> /F
-
-# Kill process on port 3000 (Mac/Linux)
-lsof -ti:3000 | xargs kill
+### Web (.env.local) - Optional
+```
+NEXT_PUBLIC_API_URL=http://localhost:3001
 ```
 
-### Database Connection Issues
-1. Ensure PostgreSQL is running
-2. Check DATABASE_URL in .env
-3. Try: `docker-compose restart postgres`
+## 🚀 Production Deployment
 
-### Prisma Issues
-```bash
-# Clear Prisma cache and regenerate
-rm -rf node_modules/.prisma
-pnpm prisma generate
-```
+For production deployment:
+1. Update JWT_SECRET to a secure random string
+2. Set up a proper database (PostgreSQL, MySQL, MongoDB)
+3. Configure environment variables
+4. Set up HTTPS
+5. Use a process manager like PM2
 
-## 📝 API Testing
+## 📄 License
 
-### Register a New User
-```bash
-curl -X POST http://localhost:3001/api/v1/auth/register \
-  -H "Content-Type: application/json" \
-  -d '{
-    "email": "test@example.com",
-    "password": "Test123!@#",
-    "firstName": "John",
-    "lastName": "Doe",
-    "role": "OWNER",
-    "organizationName": "My Wedding Planning Co"
-  }'
-```
-
-### Login
-```bash
-curl -X POST http://localhost:3001/api/v1/auth/login \
-  -H "Content-Type: application/json" \
-  -d '{
-    "email": "test@example.com",
-    "password": "Test123!@#"
-  }'
-```
-
-## 🚢 Next Steps
-
-1. **Complete Database Schema**: 
-   - Copy the complete schema from `packages/database/prisma/complete-schema.prisma`
-   - Run migrations: `pnpm prisma migrate dev`
-
-2. **Implement Core Modules**:
-   - CRM (leads, pipeline)
-   - Projects (tasks, timeline, budget)
-   - Invoicing (proposals, contracts, payments)
-   - Wedding Websites (generator, RSVP)
-   - Vendor Directory
-
-3. **Set Up Integrations**:
-   - Stripe payment processing
-   - SendGrid email service
-   - AWS S3 file storage
-   - Twilio SMS notifications
-
-4. **Build Frontend**:
-   - Dashboard components
-   - Project management views
-   - Client portal
-   - Wedding website builder
-
-## 📚 Documentation
-
-- [Prisma Documentation](https://www.prisma.io/docs)
-- [Next.js Documentation](https://nextjs.org/docs)
-- [Express.js Documentation](https://expressjs.com)
-- [TypeScript Documentation](https://www.typescriptlang.org/docs)
-
-## 🤝 Support
-
-For issues or questions, create an issue in the repository or contact the development team.
+Copyright © 2024 Ruban Bleu Planning Suite
