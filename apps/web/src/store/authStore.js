@@ -1,3 +1,5 @@
+'use client';
+
 import { create } from 'zustand';
 import { api } from '@/lib/api';
 
@@ -137,6 +139,9 @@ const useAuthStore = create((set, get) => ({
   // Logout
   logout: () => {
     localStorage.removeItem('auth_token');
+    localStorage.removeItem('user');
+    localStorage.removeItem('organization');
+    api.auth.logout();
     set({
       user: null,
       organization: null,

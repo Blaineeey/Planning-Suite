@@ -1,125 +1,124 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
+import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 
 export default function TestPage() {
-  const [apiStatus, setApiStatus] = useState('checking');
-  const [apiData, setApiData] = useState(null);
-  const [error, setError] = useState(null);
+  const router = useRouter();
+  const [apiStatus, setApiStatus] = useState(null);
+  const [dbStatus, setDbStatus] = useState(null);
 
-  useEffect(() => {
-    checkAPI();
-  }, []);
-
-  const checkAPI = async () => {
+  const testAPI = async () => {
     try {
-      // Test basic API connection
       const response = await fetch('http://localhost:3001/health');
-      if (response.ok) {
-        const data = await response.json();
-        setApiStatus('connected');
-        setApiData(data);
-      } else {
-        setApiStatus('error');
-        setError('API returned error status');
-      }
+      const data = await response.json();
+      setApiStatus(data);
     } catch (error) {
-      console.error('API connection error:', error);
-      setApiStatus('error');
-      setError(error.message);
+      setApiStatus({ error: error.message });
     }
   };
 
-  const testLogin = async () => {
+  const testDatabase = async () => {
     try {
-      const response = await fetch('http://localhost:3001/api/auth/login', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          email: 'demo@example.com',
-          password: 'demo123'
-        })
-      });
-      
+      const response = await fetch('http://localhost:3001/api/stats/overview');
       const data = await response.json();
-      console.log('Login response:', data);
-      alert('Login response: ' + JSON.stringify(data, null, 2));
+      setDbStatus(data);
     } catch (error) {
-      console.error('Login error:', error);
-      alert('Login error: ' + error.message);
+      setDbStatus({ error: error.message });
     }
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 p-8">
+    <div className="min-h-screen bg-gradient-to-br from-pink-50 via-purple-50 to-blue-50 p-8">
       <div className="max-w-4xl mx-auto">
-        <h1 className="text-3xl font-bold mb-8">API Connection Test</h1>
-        
-        <div className="bg-white rounded-lg shadow p-6 mb-6">
-          <h2 className="text-xl font-semibold mb-4">API Status</h2>
-          <div className="flex items-center space-x-2 mb-4">
-            <span className="font-medium">Status:</span>
-            <span className={`px-3 py-1 rounded-full text-sm font-semibold ${
-              apiStatus === 'connected' ? 'bg-green-100 text-green-800' : 
-              apiStatus === 'error' ? 'bg-red-100 text-red-800' : 
-              'bg-yellow-100 text-yellow-800'
-            }`}>
-              {apiStatus === 'connected' ? '✓ Connected' : 
-               apiStatus === 'error' ? '✗ Error' : 
-               '⟳ Checking...'}
-            </span>
-          </div>
+        <div className="bg-white rounded-2xl shadow-xl p-8">
+          <h1 className="text-3xl font-bold text-gray-900 mb-8">System Test Page</h1>
           
-          {error && (
-            <div className="bg-red-50 border border-red-200 rounded p-3 mb-4">
-              <p className="text-red-600 text-sm">Error: {error}</p>
+          <div className="space-y-6">
+            {/* API Test */}
+            <div className="border border-gray-200 rounded-lg p-6">
+              <h2 className="text-xl font-semibold mb-4">API Connection Test</h2>
+              <button
+                onClick={testAPI}
+                className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 mb-4"
+              >
+                Test API Health
+              </button>
+              {apiStatus && (
+                <pre className="bg-gray-100 p-4 rounded-lg text-sm overflow-auto">
+                  {JSON.stringify(apiStatus, null, 2)}
+                </pre>
+              )}
             </div>
-          )}
-          
-          <div className="space-x-4">
-            <button 
-              onClick={checkAPI}
-              className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
-            >
-              Check API Health
-            </button>
-            
-            <button 
-              onClick={testLogin}
-              className="px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700"
-            >
-              Test Login
-            </button>
-          </div>
-        </div>
 
-        {apiData && (
-          <div className="bg-white rounded-lg shadow p-6">
-            <h2 className="text-xl font-semibold mb-4">API Response</h2>
-            <pre className="bg-gray-50 p-4 rounded overflow-auto text-sm">
-              {JSON.stringify(apiData, null, 2)}
-            </pre>
-          </div>
-        )}
+            {/* Database Test */}
+            <div className="border border-gray-200 rounded-lg p-6">
+              <h2 className="text-xl font-semibold mb-4">Database Test</h2>
+              <button
+                onClick={testDatabase}
+                className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 mb-4"
+              >
+                Test Database Stats
+              </button>
+              {dbStatus && (
+                <pre className="bg-gray-100 p-4 rounded-lg text-sm overflow-auto">
+                  {JSON.stringify(dbStatus, null, 2)}
+                </pre>
+              )}
+            </div>
 
-        <div className="bg-white rounded-lg shadow p-6 mt-6">
-          <h2 className="text-xl font-semibold mb-4">Test Credentials</h2>
-          <div className="bg-blue-50 border border-blue-200 rounded p-4">
-            <p className="text-sm"><strong>Email:</strong> demo@example.com</p>
-            <p className="text-sm"><strong>Password:</strong> demo123</p>
-          </div>
-        </div>
+            {/* Navigation Links */}
+            <div className="border border-gray-200 rounded-lg p-6">
+              <h2 className="text-xl font-semibold mb-4">Quick Navigation</h2>
+              <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+                <Link
+                  href="/login"
+                  className="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 text-center"
+                >
+                  Login Page
+                </Link>
+                <Link
+                  href="/register"
+                  className="px-4 py-2 bg-pink-600 text-white rounded-lg hover:bg-pink-700 text-center"
+                >
+                  Register Page
+                </Link>
+                <Link
+                  href="/dashboard"
+                  className="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 text-center"
+                >
+                  Dashboard
+                </Link>
+                <Link
+                  href="/dashboard/crm"
+                  className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 text-center"
+                >
+                  CRM
+                </Link>
+                <Link
+                  href="/dashboard/projects"
+                  className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 text-center"
+                >
+                  Projects
+                </Link>
+                <Link
+                  href="/dashboard/guests"
+                  className="px-4 py-2 bg-yellow-600 text-white rounded-lg hover:bg-yellow-700 text-center"
+                >
+                  Guests
+                </Link>
+              </div>
+            </div>
 
-        <div className="bg-white rounded-lg shadow p-6 mt-6">
-          <h2 className="text-xl font-semibold mb-4">Quick Links</h2>
-          <div className="space-y-2">
-            <a href="/login" className="block text-blue-600 hover:underline">→ Go to Login Page</a>
-            <a href="/register" className="block text-blue-600 hover:underline">→ Go to Register Page</a>
-            <a href="/dashboard" className="block text-blue-600 hover:underline">→ Go to Dashboard (requires login)</a>
-            <a href="http://localhost:3001" target="_blank" className="block text-blue-600 hover:underline">→ View API Docs</a>
-            <a href="http://localhost:3001/health" target="_blank" className="block text-blue-600 hover:underline">→ Check API Health</a>
+            {/* Demo Credentials */}
+            <div className="bg-blue-50 border border-blue-200 rounded-lg p-6">
+              <h2 className="text-xl font-semibold mb-4 text-blue-900">Demo Credentials</h2>
+              <div className="space-y-2 text-blue-700">
+                <p><strong>Email:</strong> demo@example.com</p>
+                <p><strong>Password:</strong> demo123</p>
+              </div>
+            </div>
           </div>
         </div>
       </div>

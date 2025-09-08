@@ -5,24 +5,25 @@ import Link from 'next/link';
 import DashboardLayout from '@/components/DashboardLayout';
 import { api } from '@/lib/api';
 import {
+  Users,
   Plus,
   Search,
   Filter,
-  MoreVertical,
   Mail,
   Phone,
   Calendar,
   DollarSign,
-  Eye,
+  MoreVertical,
+  FileText,
+  Send,
+  CheckCircle,
+  XCircle,
+  Clock,
+  TrendingUp,
+  ChevronRight,
   Edit,
   Trash2,
-  ChevronRight,
-  TrendingUp,
-  Users,
-  FileText,
-  Clock,
-  CheckCircle,
-  XCircle
+  Eye
 } from 'lucide-react';
 
 export default function CRMPage() {
@@ -31,97 +32,40 @@ export default function CRMPage() {
   const [proposals, setProposals] = useState([]);
   const [contracts, setContracts] = useState([]);
   const [invoices, setInvoices] = useState([]);
-  const [pipelineStages, setPipelineStages] = useState([]);
-  const [searchQuery, setSearchQuery] = useState('');
+  const [searchTerm, setSearchTerm] = useState('');
   const [filterStatus, setFilterStatus] = useState('all');
   const [loading, setLoading] = useState(true);
-  const [showDropdown, setShowDropdown] = useState(null);
 
   useEffect(() => {
     fetchCRMData();
   }, [activeTab]);
 
   const fetchCRMData = async () => {
+    setLoading(true);
     try {
-      setLoading(true);
-      
-      // Fetch pipeline stages
-      const stagesResponse = await api.crm.pipelineStages();
-      setPipelineStages(stagesResponse.data || []);
-      
-      // Fetch data based on active tab
       switch (activeTab) {
         case 'leads':
-          const leadsResponse = await api.crm.leads.list();
-          setLeads(leadsResponse.data || []);
+          const leadsData = await api.crm.leads.list();
+          setLeads(leadsData);
           break;
         case 'proposals':
-          const proposalsResponse = await api.crm.proposals.list();
-          setProposals(proposalsResponse.data || []);
+          const proposalsData = await api.crm.proposals.list();
+          setProposals(proposalsData);
           break;
         case 'contracts':
-          const contractsResponse = await api.crm.contracts.list();
-          setContracts(contractsResponse.data || []);
+          const contractsData = await api.crm.contracts.list();
+          setContracts(contractsData);
           break;
         case 'invoices':
-          const invoicesResponse = await api.crm.invoices.list();
-          setInvoices(invoicesResponse.data || []);
+          const invoicesData = await api.crm.invoices.list();
+          setInvoices(invoicesData);
           break;
       }
     } catch (error) {
-      console.error('Error fetching CRM data:', error);
+      console.error('Failed to fetch CRM data:', error);
     } finally {
       setLoading(false);
     }
-  };
-
-  const handleConvertLead = async (leadId) => {
-    try {
-      await api.crm.leads.convert(leadId, { createProject: true });
-      fetchCRMData();
-    } catch (error) {
-      console.error('Error converting lead:', error);
-    }
-  };
-
-  const handleSendProposal = async (proposalId) => {
-    try {
-      await api.crm.proposals.send(proposalId);
-      fetchCRMData();
-    } catch (error) {
-      console.error('Error sending proposal:', error);
-    }
-  };
-
-  const getStatusBadge = (status) => {
-    const statusConfig = {
-      NEW: { color: 'bg-yellow-100 text-yellow-800', icon: Clock },
-      CONTACTED: { color: 'bg-blue-100 text-blue-800', icon: Mail },
-      QUALIFIED: { color: 'bg-purple-100 text-purple-800', icon: CheckCircle },
-      PROPOSAL: { color: 'bg-orange-100 text-orange-800', icon: FileText },
-      NEGOTIATION: { color: 'bg-pink-100 text-pink-800', icon: TrendingUp },
-      CLOSED_WON: { color: 'bg-green-100 text-green-800', icon: CheckCircle },
-      CLOSED_LOST: { color: 'bg-red-100 text-red-800', icon: XCircle },
-      DRAFT: { color: 'bg-gray-100 text-gray-800', icon: FileText },
-      SENT: { color: 'bg-blue-100 text-blue-800', icon: Mail },
-      VIEWED: { color: 'bg-purple-100 text-purple-800', icon: Eye },
-      ACCEPTED: { color: 'bg-green-100 text-green-800', icon: CheckCircle },
-      DECLINED: { color: 'bg-red-100 text-red-800', icon: XCircle },
-      SIGNED: { color: 'bg-green-100 text-green-800', icon: CheckCircle },
-      PAID: { color: 'bg-green-100 text-green-800', icon: CheckCircle },
-      PARTIAL: { color: 'bg-yellow-100 text-yellow-800', icon: Clock },
-      OVERDUE: { color: 'bg-red-100 text-red-800', icon: Clock }
-    };
-    
-    const config = statusConfig[status] || { color: 'bg-gray-100 text-gray-800', icon: Clock };
-    const Icon = config.icon;
-    
-    return (
-      <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${config.color}`}>
-        <Icon size={12} className="mr-1" />
-        {status}
-      </span>
-    );
   };
 
   const tabs = [
@@ -131,284 +75,34 @@ export default function CRMPage() {
     { id: 'invoices', name: 'Invoices', count: invoices.length }
   ];
 
-  const renderLeadsTable = () => (
-    <div className="overflow-x-auto">
-      <table className="min-w-full divide-y divide-gray-200">
-        <thead className="bg-gray-50">
-          <tr>
-            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-              Contact
-            </th>
-            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-              Status
-            </th>
-            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-              Event Details
-            </th>
-            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-              Budget
-            </th>
-            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-              Source
-            </th>
-            <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
-              Actions
-            </th>
-          </tr>
-        </thead>
-        <tbody className="bg-white divide-y divide-gray-200">
-          {leads.map((lead) => (
-            <tr key={lead.id} className="hover:bg-gray-50">
-              <td className="px-6 py-4 whitespace-nowrap">
-                <div>
-                  <div className="text-sm font-medium text-gray-900">
-                    {lead.firstName} {lead.lastName}
-                  </div>
-                  <div className="text-sm text-gray-500">{lead.email}</div>
-                  <div className="text-sm text-gray-500">{lead.phone}</div>
-                </div>
-              </td>
-              <td className="px-6 py-4 whitespace-nowrap">
-                {getStatusBadge(lead.status)}
-              </td>
-              <td className="px-6 py-4 whitespace-nowrap">
-                <div className="text-sm text-gray-900">{lead.eventType || 'Not specified'}</div>
-                <div className="text-sm text-gray-500">
-                  {lead.eventDate ? new Date(lead.eventDate).toLocaleDateString() : 'No date'}
-                </div>
-                <div className="text-sm text-gray-500">{lead.guestCount || 0} guests</div>
-              </td>
-              <td className="px-6 py-4 whitespace-nowrap">
-                <div className="text-sm font-medium text-gray-900">
-                  ${(lead.budget || 0).toLocaleString()}
-                </div>
-              </td>
-              <td className="px-6 py-4 whitespace-nowrap">
-                <div className="text-sm text-gray-900">{lead.source || 'Direct'}</div>
-              </td>
-              <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                <div className="relative inline-block text-left">
-                  <button
-                    onClick={() => setShowDropdown(showDropdown === lead.id ? null : lead.id)}
-                    className="text-gray-400 hover:text-gray-600"
-                  >
-                    <MoreVertical size={20} />
-                  </button>
-                  {showDropdown === lead.id && (
-                    <div className="origin-top-right absolute right-0 mt-2 w-48 rounded-md shadow-lg bg-white ring-1 ring-black ring-opacity-5 z-10">
-                      <div className="py-1">
-                        <Link
-                          href={`/dashboard/crm/leads/${lead.id}`}
-                          className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
-                        >
-                          <Eye className="inline mr-2" size={16} />
-                          View Details
-                        </Link>
-                        <Link
-                          href={`/dashboard/crm/leads/${lead.id}/edit`}
-                          className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
-                        >
-                          <Edit className="inline mr-2" size={16} />
-                          Edit
-                        </Link>
-                        <button
-                          onClick={() => handleConvertLead(lead.id)}
-                          className="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
-                        >
-                          <Users className="inline mr-2" size={16} />
-                          Convert to Client
-                        </button>
-                        <button className="block w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-red-50">
-                          <Trash2 className="inline mr-2" size={16} />
-                          Delete
-                        </button>
-                      </div>
-                    </div>
-                  )}
-                </div>
-              </td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
-    </div>
-  );
+  const getStatusColor = (status) => {
+    const colors = {
+      NEW: 'bg-blue-100 text-blue-700',
+      CONTACTED: 'bg-yellow-100 text-yellow-700',
+      QUALIFIED: 'bg-green-100 text-green-700',
+      PROPOSAL: 'bg-purple-100 text-purple-700',
+      CLOSED_WON: 'bg-green-100 text-green-700',
+      CLOSED_LOST: 'bg-red-100 text-red-700',
+      DRAFT: 'bg-gray-100 text-gray-700',
+      SENT: 'bg-blue-100 text-blue-700',
+      VIEWED: 'bg-yellow-100 text-yellow-700',
+      ACCEPTED: 'bg-green-100 text-green-700',
+      DECLINED: 'bg-red-100 text-red-700',
+      SIGNED: 'bg-green-100 text-green-700',
+      PAID: 'bg-green-100 text-green-700',
+      OVERDUE: 'bg-red-100 text-red-700',
+      PARTIAL: 'bg-yellow-100 text-yellow-700'
+    };
+    return colors[status] || 'bg-gray-100 text-gray-700';
+  };
 
-  const renderProposalsTable = () => (
-    <div className="overflow-x-auto">
-      <table className="min-w-full divide-y divide-gray-200">
-        <thead className="bg-gray-50">
-          <tr>
-            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-              Proposal
-            </th>
-            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-              Status
-            </th>
-            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-              Amount
-            </th>
-            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-              Valid Until
-            </th>
-            <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
-              Actions
-            </th>
-          </tr>
-        </thead>
-        <tbody className="bg-white divide-y divide-gray-200">
-          {proposals.map((proposal) => (
-            <tr key={proposal.id} className="hover:bg-gray-50">
-              <td className="px-6 py-4 whitespace-nowrap">
-                <div className="text-sm font-medium text-gray-900">{proposal.title}</div>
-                <div className="text-sm text-gray-500">{proposal.number}</div>
-              </td>
-              <td className="px-6 py-4 whitespace-nowrap">
-                {getStatusBadge(proposal.status)}
-              </td>
-              <td className="px-6 py-4 whitespace-nowrap">
-                <div className="text-sm font-medium text-gray-900">
-                  ${(proposal.total || 0).toLocaleString()}
-                </div>
-              </td>
-              <td className="px-6 py-4 whitespace-nowrap">
-                <div className="text-sm text-gray-900">
-                  {proposal.validUntil ? new Date(proposal.validUntil).toLocaleDateString() : 'No expiry'}
-                </div>
-              </td>
-              <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                {proposal.status === 'DRAFT' && (
-                  <button
-                    onClick={() => handleSendProposal(proposal.id)}
-                    className="text-purple-600 hover:text-purple-900 mr-2"
-                  >
-                    Send
-                  </button>
-                )}
-                <Link href={`/dashboard/crm/proposals/${proposal.id}`} className="text-purple-600 hover:text-purple-900">
-                  View
-                </Link>
-              </td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
-    </div>
-  );
-
-  const renderContractsTable = () => (
-    <div className="overflow-x-auto">
-      <table className="min-w-full divide-y divide-gray-200">
-        <thead className="bg-gray-50">
-          <tr>
-            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-              Contract
-            </th>
-            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-              Status
-            </th>
-            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-              Signed Date
-            </th>
-            <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
-              Actions
-            </th>
-          </tr>
-        </thead>
-        <tbody className="bg-white divide-y divide-gray-200">
-          {contracts.map((contract) => (
-            <tr key={contract.id} className="hover:bg-gray-50">
-              <td className="px-6 py-4 whitespace-nowrap">
-                <div className="text-sm font-medium text-gray-900">{contract.title}</div>
-                <div className="text-sm text-gray-500">{contract.number}</div>
-              </td>
-              <td className="px-6 py-4 whitespace-nowrap">
-                {getStatusBadge(contract.status)}
-              </td>
-              <td className="px-6 py-4 whitespace-nowrap">
-                <div className="text-sm text-gray-900">
-                  {contract.signedAt ? new Date(contract.signedAt).toLocaleDateString() : 'Not signed'}
-                </div>
-              </td>
-              <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                <Link href={`/dashboard/crm/contracts/${contract.id}`} className="text-purple-600 hover:text-purple-900">
-                  View
-                </Link>
-              </td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
-    </div>
-  );
-
-  const renderInvoicesTable = () => (
-    <div className="overflow-x-auto">
-      <table className="min-w-full divide-y divide-gray-200">
-        <thead className="bg-gray-50">
-          <tr>
-            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-              Invoice
-            </th>
-            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-              Status
-            </th>
-            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-              Amount
-            </th>
-            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-              Due Date
-            </th>
-            <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
-              Actions
-            </th>
-          </tr>
-        </thead>
-        <tbody className="bg-white divide-y divide-gray-200">
-          {invoices.map((invoice) => (
-            <tr key={invoice.id} className="hover:bg-gray-50">
-              <td className="px-6 py-4 whitespace-nowrap">
-                <div className="text-sm font-medium text-gray-900">{invoice.number}</div>
-              </td>
-              <td className="px-6 py-4 whitespace-nowrap">
-                {getStatusBadge(invoice.status)}
-              </td>
-              <td className="px-6 py-4 whitespace-nowrap">
-                <div className="text-sm font-medium text-gray-900">
-                  ${(invoice.total || 0).toLocaleString()}
-                </div>
-                {invoice.balance > 0 && (
-                  <div className="text-xs text-gray-500">
-                    Balance: ${invoice.balance.toLocaleString()}
-                  </div>
-                )}
-              </td>
-              <td className="px-6 py-4 whitespace-nowrap">
-                <div className="text-sm text-gray-900">
-                  {invoice.dueDate ? new Date(invoice.dueDate).toLocaleDateString() : 'No due date'}
-                </div>
-              </td>
-              <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                <Link href={`/dashboard/crm/invoices/${invoice.id}`} className="text-purple-600 hover:text-purple-900">
-                  View
-                </Link>
-              </td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
-    </div>
-  );
-
-  if (loading) {
-    return (
-      <DashboardLayout>
-        <div className="flex items-center justify-center h-96">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-purple-600"></div>
-        </div>
-      </DashboardLayout>
-    );
-  }
+  const filteredLeads = leads.filter(lead => {
+    const matchesSearch = lead.firstName?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                         lead.lastName?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                         lead.email?.toLowerCase().includes(searchTerm.toLowerCase());
+    const matchesFilter = filterStatus === 'all' || lead.status === filterStatus;
+    return matchesSearch && matchesFilter;
+  });
 
   return (
     <DashboardLayout>
@@ -416,34 +110,66 @@ export default function CRMPage() {
         {/* Header */}
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-2xl font-bold text-gray-900">CRM</h1>
-            <p className="text-gray-600">Manage leads, proposals, contracts, and invoices</p>
+            <h1 className="text-2xl font-bold text-gray-900">CRM & Sales</h1>
+            <p className="text-gray-500 mt-1">Manage your leads, proposals, and contracts</p>
           </div>
-          <Link
-            href={`/dashboard/crm/${activeTab}/new`}
-            className="inline-flex items-center px-4 py-2 bg-gradient-to-r from-pink-500 to-purple-600 text-white rounded-lg hover:from-pink-600 hover:to-purple-700"
-          >
-            <Plus size={20} className="mr-2" />
-            Add New
-          </Link>
+          
+          <div className="bg-white rounded-xl p-4 shadow-sm">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm text-gray-500">Active Proposals</p>
+                <p className="text-2xl font-bold text-gray-900">{stats.activeProposals}</p>
+              </div>
+              <div className="w-10 h-10 bg-purple-100 rounded-lg flex items-center justify-center">
+                <FileText size={20} className="text-purple-600" />
+              </div>
+            </div>
+            <p className="text-xs text-green-600 mt-2">3 pending review</p>
+          </div>
+          
+          <div className="bg-white rounded-xl p-4 shadow-sm">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm text-gray-500">Signed Contracts</p>
+                <p className="text-2xl font-bold text-gray-900">{stats.signedContracts}</p>
+              </div>
+              <div className="w-10 h-10 bg-green-100 rounded-lg flex items-center justify-center">
+                <CheckCircle size={20} className="text-green-600" />
+              </div>
+            </div>
+            <p className="text-xs text-green-600 mt-2">2 this week</p>
+          </div>
+          
+          <div className="bg-white rounded-xl p-4 shadow-sm">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm text-gray-500">Revenue</p>
+                <p className="text-2xl font-bold text-gray-900">${stats.revenue.toLocaleString()}</p>
+              </div>
+              <div className="w-10 h-10 bg-green-100 rounded-lg flex items-center justify-center">
+                <DollarSign size={20} className="text-green-600" />
+              </div>
+            </div>
+            <p className="text-xs text-green-600 mt-2">+23% from last month</p>
+          </div>
         </div>
 
         {/* Tabs */}
         <div className="bg-white rounded-xl shadow-sm">
           <div className="border-b border-gray-200">
-            <nav className="flex space-x-8 px-6" aria-label="Tabs">
+            <nav className="flex space-x-8 px-6">
               {tabs.map((tab) => (
                 <button
                   key={tab.id}
                   onClick={() => setActiveTab(tab.id)}
-                  className={`py-4 px-1 border-b-2 font-medium text-sm ${
+                  className={`py-4 px-1 border-b-2 font-medium text-sm transition-colors ${
                     activeTab === tab.id
                       ? 'border-purple-500 text-purple-600'
                       : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
                   }`}
                 >
                   {tab.name}
-                  <span className="ml-2 py-0.5 px-2 rounded-full bg-gray-100 text-xs">
+                  <span className="ml-2 px-2 py-0.5 text-xs bg-gray-100 text-gray-600 rounded-full">
                     {tab.count}
                   </span>
                 </button>
@@ -451,48 +177,479 @@ export default function CRMPage() {
             </nav>
           </div>
 
+          {/* Search and Filter Bar */}
+          <div className="p-4 border-b border-gray-200">
+            <div className="flex items-center space-x-4">
+              <div className="flex-1 relative">
+                <Search size={18} className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
+                <input
+                  type="text"
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  placeholder="Search by name, email..."
+                  className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent text-gray-900 placeholder-gray-400"
+                />
+              </div>
+              <select
+                value={filterStatus}
+                onChange={(e) => setFilterStatus(e.target.value)}
+                className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent text-gray-900"
+              >
+                <option value="all">All Status</option>
+                <option value="NEW">New</option>
+                <option value="CONTACTED">Contacted</option>
+                <option value="QUALIFIED">Qualified</option>
+                <option value="PROPOSAL">Proposal</option>
+                <option value="CLOSED_WON">Won</option>
+                <option value="CLOSED_LOST">Lost</option>
+              </select>
+            </div>
+          </div>
+
           {/* Content */}
           <div className="p-6">
-            {/* Search and Filter */}
-            <div className="flex items-center justify-between mb-6">
-              <div className="flex items-center space-x-4">
-                <div className="relative">
-                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={20} />
-                  <input
-                    type="text"
-                    value={searchQuery}
-                    onChange={(e) => setSearchQuery(e.target.value)}
-                    placeholder="Search..."
-                    className="pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
-                  />
-                </div>
-                <button className="inline-flex items-center px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50">
-                  <Filter size={20} className="mr-2" />
-                  Filter
-                </button>
+            {loading ? (
+              <div className="text-center py-12">
+                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-purple-600 mx-auto"></div>
+                <p className="text-gray-500 mt-2">Loading...</p>
+              </div>
+            ) : activeTab === 'leads' ? (
+              <div className="space-y-4">
+                {filteredLeads.length === 0 ? (
+                  <div className="text-center py-12">
+                    <Users size={48} className="text-gray-300 mx-auto mb-4" />
+                    <p className="text-gray-500">No leads found</p>
+                    <button
+                      onClick={() => alert('Add Lead feature coming soon!')}
+                      className="mt-4 inline-flex items-center px-4 py-2 text-sm text-purple-600 hover:text-purple-700"
+                    >
+                      <Plus size={16} className="mr-2" />
+                      Add your first lead
+                    </button>
+                  </div>
+                ) : (
+                  filteredLeads.map((lead) => (
+                    <div key={lead.id} className="border border-gray-200 rounded-lg p-4 hover:shadow-md transition-shadow">
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center space-x-4">
+                          <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-purple-600 rounded-full flex items-center justify-center">
+                            <span className="text-white font-medium text-sm">
+                              {lead.firstName?.[0]}{lead.lastName?.[0]}
+                            </span>
+                          </div>
+                          <div>
+                            <h3 className="font-medium text-gray-900">
+                              {lead.firstName} {lead.lastName}
+                            </h3>
+                            <div className="flex items-center space-x-4 text-sm text-gray-500">
+                              <span className="flex items-center">
+                                <Mail size={14} className="mr-1" />
+                                {lead.email}
+                              </span>
+                              <span className="flex items-center">
+                                <Phone size={14} className="mr-1" />
+                                {lead.phone}
+                              </span>
+                              <span className="flex items-center">
+                                <Calendar size={14} className="mr-1" />
+                                {lead.eventDate}
+                              </span>
+                            </div>
+                          </div>
+                        </div>
+                        <div className="flex items-center space-x-3">
+                          <span className={`px-3 py-1 text-xs font-medium rounded-full ${getStatusColor(lead.status)}`}>
+                            {lead.status}
+                          </span>
+                          <div className="text-right">
+                            <p className="text-sm font-medium text-gray-900">
+                              ${(lead.budget || 0).toLocaleString()}
+                            </p>
+                            <p className="text-xs text-gray-500">{lead.guestCount} guests</p>
+                          </div>
+                          <button className="p-1 hover:bg-gray-100 rounded">
+                            <MoreVertical size={18} className="text-gray-400" />
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  ))
+                )}
+              </div>
+            ) : activeTab === 'proposals' ? (
+              <div className="space-y-4">
+                {proposals.length === 0 ? (
+                  <div className="text-center py-12">
+                    <FileText size={48} className="text-gray-300 mx-auto mb-4" />
+                    <p className="text-gray-500">No proposals yet</p>
+                  </div>
+                ) : (
+                  proposals.map((proposal) => (
+                    <div key={proposal.id} className="border border-gray-200 rounded-lg p-4">
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <h3 className="font-medium text-gray-900">{proposal.title}</h3>
+                          <p className="text-sm text-gray-500">Proposal #{proposal.number}</p>
+                        </div>
+                        <div className="flex items-center space-x-3">
+                          <span className={`px-3 py-1 text-xs font-medium rounded-full ${getStatusColor(proposal.status)}`}>
+                            {proposal.status}
+                          </span>
+                          <p className="text-sm font-medium text-gray-900">
+                            ${(proposal.total || 0).toLocaleString()}
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+                  ))
+                )}
+              </div>
+            ) : activeTab === 'contracts' ? (
+              <div className="space-y-4">
+                {contracts.length === 0 ? (
+                  <div className="text-center py-12">
+                    <FileText size={48} className="text-gray-300 mx-auto mb-4" />
+                    <p className="text-gray-500">No contracts yet</p>
+                  </div>
+                ) : (
+                  contracts.map((contract) => (
+                    <div key={contract.id} className="border border-gray-200 rounded-lg p-4">
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <h3 className="font-medium text-gray-900">{contract.title}</h3>
+                          <p className="text-sm text-gray-500">Contract #{contract.number}</p>
+                        </div>
+                        <span className={`px-3 py-1 text-xs font-medium rounded-full ${getStatusColor(contract.status)}`}>
+                          {contract.status}
+                        </span>
+                      </div>
+                    </div>
+                  ))
+                )}
+              </div>
+            ) : (
+              <div className="space-y-4">
+                {invoices.length === 0 ? (
+                  <div className="text-center py-12">
+                    <DollarSign size={48} className="text-gray-300 mx-auto mb-4" />
+                    <p className="text-gray-500">No invoices yet</p>
+                  </div>
+                ) : (
+                  invoices.map((invoice) => (
+                    <div key={invoice.id} className="border border-gray-200 rounded-lg p-4">
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <h3 className="font-medium text-gray-900">Invoice #{invoice.number}</h3>
+                          <p className="text-sm text-gray-500">Due: {invoice.dueDate}</p>
+                        </div>
+                        <div className="flex items-center space-x-3">
+                          <span className={`px-3 py-1 text-xs font-medium rounded-full ${getStatusColor(invoice.status)}`}>
+                            {invoice.status}
+                          </span>
+                          <p className="text-sm font-medium text-gray-900">
+                            ${(invoice.total || 0).toLocaleString()}
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+                  ))
+                )}
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
+    </DashboardLayout>
+  );
+}>
+          <div className="flex items-center space-x-3">
+            <button className="px-4 py-2 bg-white border border-gray-300 rounded-lg hover:bg-gray-50">
+              <Filter size={18} className="inline mr-2" />
+              Filter
+            </button>
+            <Link
+              href="/dashboard/crm/leads/new"
+              className="px-4 py-2 bg-gradient-to-r from-pink-500 to-purple-600 text-white rounded-lg hover:from-pink-600 hover:to-purple-700"
+            >
+              <Plus size={18} className="inline mr-2" />
+              New Lead
+            </Link>
+          </div>
+        </div>
+
+        {/* Stats Cards */}
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+          <div className="bg-white rounded-xl p-4 shadow-sm">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm text-gray-500">Total Leads</p>
+                <p className="text-2xl font-bold text-gray-900">{leads.length}</p>
+              </div>
+              <div className="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center">
+                <Users size={20} className="text-blue-600" />
               </div>
             </div>
+            <p className="text-xs text-green-600 mt-2">+12% from last month</p>
+          </div>
+          
+          <div className="bg-white rounded-xl p-4 shadow-sm">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm text-gray-500">Active Proposals</p>
+                <p className="text-2xl font-bold text-gray-900">{proposals.filter(p => p.status === 'SENT').length}</p>
+              </div>
+              <div className="w-10 h-10 bg-purple-100 rounded-lg flex items-center justify-center">
+                <FileText size={20} className="text-purple-600" />
+              </div>
+            </div>
+            <p className="text-xs text-green-600 mt-2">3 pending review</p>
+          </div>
+          
+          <div className="bg-white rounded-xl p-4 shadow-sm">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm text-gray-500">Signed Contracts</p>
+                <p className="text-2xl font-bold text-gray-900">{contracts.filter(c => c.status === 'SIGNED').length}</p>
+              </div>
+              <div className="w-10 h-10 bg-green-100 rounded-lg flex items-center justify-center">
+                <CheckCircle size={20} className="text-green-600" />
+              </div>
+            </div>
+            <p className="text-xs text-green-600 mt-2">2 this week</p>
+          </div>
+          
+          <div className="bg-white rounded-xl p-4 shadow-sm">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm text-gray-500">Revenue</p>
+                <p className="text-2xl font-bold text-gray-900">$124.5k</p>
+              </div>
+              <div className="w-10 h-10 bg-green-100 rounded-lg flex items-center justify-center">
+                <DollarSign size={20} className="text-green-600" />
+              </div>
+            </div>
+            <p className="text-xs text-green-600 mt-2">+23% from last month</p>
+          </div>
+        </div>
 
-            {/* Tables */}
-            {activeTab === 'leads' && renderLeadsTable()}
-            {activeTab === 'proposals' && renderProposalsTable()}
-            {activeTab === 'contracts' && renderContractsTable()}
-            {activeTab === 'invoices' && renderInvoicesTable()}
-
-            {/* Empty State */}
-            {((activeTab === 'leads' && leads.length === 0) ||
-              (activeTab === 'proposals' && proposals.length === 0) ||
-              (activeTab === 'contracts' && contracts.length === 0) ||
-              (activeTab === 'invoices' && invoices.length === 0)) && (
-              <div className="text-center py-12">
-                <p className="text-gray-500 mb-4">No {activeTab} found</p>
-                <Link
-                  href={`/dashboard/crm/${activeTab}/new`}
-                  className="inline-flex items-center px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700"
+        {/* Tabs */}
+        <div className="bg-white rounded-xl shadow-sm">
+          <div className="border-b border-gray-200">
+            <nav className="flex space-x-8 px-6">
+              {tabs.map((tab) => (
+                <button
+                  key={tab.id}
+                  onClick={() => setActiveTab(tab.id)}
+                  className={`py-4 px-1 border-b-2 font-medium text-sm transition-colors ${
+                    activeTab === tab.id
+                      ? 'border-purple-500 text-purple-600'
+                      : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                  }`}
                 >
-                  <Plus size={20} className="mr-2" />
-                  Add First {activeTab.slice(0, -1)}
-                </Link>
+                  {tab.name}
+                  <span className="ml-2 px-2 py-0.5 text-xs bg-gray-100 text-gray-600 rounded-full">
+                    {tab.count}
+                  </span>
+                </button>
+              ))}
+            </nav>
+          </div>
+
+          {/* Search and Filter Bar */}
+          <div className="p-4 border-b border-gray-200">
+            <div className="flex items-center space-x-4">
+              <div className="flex-1 relative">
+                <Search size={18} className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
+                <input
+                  type="text"
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  placeholder="Search by name, email..."
+                  className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent text-gray-900 placeholder-gray-400"
+                />
+              </div>
+              <select
+                value={filterStatus}
+                onChange={(e) => setFilterStatus(e.target.value)}
+                className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent text-gray-900"
+              >
+                <option value="all">All Status</option>
+                <option value="NEW">New</option>
+                <option value="CONTACTED">Contacted</option>
+                <option value="QUALIFIED">Qualified</option>
+                <option value="PROPOSAL">Proposal</option>
+                <option value="CLOSED_WON">Won</option>
+                <option value="CLOSED_LOST">Lost</option>
+              </select>
+            </div>
+          </div>
+
+          {/* Content */}
+          <div className="p-6">
+            {activeTab === 'leads' ? (
+              <div className="space-y-4">
+                {filteredLeads.length === 0 ? (
+                  <div className="text-center py-12">
+                    <Users size={48} className="text-gray-300 mx-auto mb-4" />
+                    <p className="text-gray-500">No leads found</p>
+                  </div>
+                ) : (
+                  filteredLeads.map((lead) => (
+                    <div key={lead.id} className="border border-gray-200 rounded-lg p-4 hover:shadow-md transition-shadow">
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center space-x-4">
+                          <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-purple-600 rounded-full flex items-center justify-center">
+                            <span className="text-white font-medium text-sm">
+                              {lead.firstName?.[0]}{lead.lastName?.[0]}
+                            </span>
+                          </div>
+                          <div>
+                            <h3 className="font-medium text-gray-900">
+                              {lead.firstName} {lead.lastName}
+                            </h3>
+                            <div className="flex items-center space-x-4 text-sm text-gray-500">
+                              <span className="flex items-center">
+                                <Mail size={14} className="mr-1" />
+                                {lead.email}
+                              </span>
+                              <span className="flex items-center">
+                                <Phone size={14} className="mr-1" />
+                                {lead.phone}
+                              </span>
+                              <span className="flex items-center">
+                                <Calendar size={14} className="mr-1" />
+                                {lead.eventDate}
+                              </span>
+                            </div>
+                          </div>
+                        </div>
+                        <div className="flex items-center space-x-3">
+                          <span className={`px-3 py-1 text-xs font-medium rounded-full ${getStatusColor(lead.status)}`}>
+                            {lead.status}
+                          </span>
+                          <div className="text-right">
+                            <p className="text-sm font-medium text-gray-900">
+                              ${(lead.budget || 0).toLocaleString()}
+                            </p>
+                            <p className="text-xs text-gray-500">{lead.guestCount} guests</p>
+                          </div>
+                          <button className="p-1 hover:bg-gray-100 rounded">
+                            <MoreVertical size={18} className="text-gray-400" />
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  ))
+                )}
+              </div>
+            ) : (
+              <div className="text-center py-12">
+                <p className="text-gray-500">Content for {activeTab} coming soon...</p>
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
+    </DashboardLayout>
+  );
+} transform -translate-y-1/2 text-gray-400" />
+                <input
+                  type="text"
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  placeholder="Search by name, email..."
+                  className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                />
+              </div>
+              <select
+                value={filterStatus}
+                onChange={(e) => setFilterStatus(e.target.value)}
+                className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+              >
+                <option value="all">All Status</option>
+                <option value="NEW">New</option>
+                <option value="CONTACTED">Contacted</option>
+                <option value="QUALIFIED">Qualified</option>
+                <option value="PROPOSAL">Proposal</option>
+                <option value="CLOSED_WON">Won</option>
+                <option value="CLOSED_LOST">Lost</option>
+              </select>
+            </div>
+          </div>
+
+          {/* Content */}
+          <div className="p-6">
+            {loading ? (
+              <div className="text-center py-12">
+                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-purple-600 mx-auto"></div>
+                <p className="text-gray-500 mt-2">Loading...</p>
+              </div>
+            ) : activeTab === 'leads' ? (
+              <div className="space-y-4">
+                {filteredLeads.length === 0 ? (
+                  <div className="text-center py-12">
+                    <Users size={48} className="text-gray-300 mx-auto mb-4" />
+                    <p className="text-gray-500">No leads found</p>
+                    <Link
+                      href="/dashboard/crm/leads/new"
+                      className="mt-4 inline-flex items-center px-4 py-2 text-sm text-purple-600 hover:text-purple-700"
+                    >
+                      <Plus size={16} className="mr-2" />
+                      Add your first lead
+                    </Link>
+                  </div>
+                ) : (
+                  filteredLeads.map((lead) => (
+                    <div key={lead.id} className="border border-gray-200 rounded-lg p-4 hover:shadow-md transition-shadow">
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center space-x-4">
+                          <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-purple-600 rounded-full flex items-center justify-center">
+                            <span className="text-white font-medium text-sm">
+                              {lead.firstName?.[0]}{lead.lastName?.[0]}
+                            </span>
+                          </div>
+                          <div>
+                            <h3 className="font-medium text-gray-900">
+                              {lead.firstName} {lead.lastName}
+                            </h3>
+                            <div className="flex items-center space-x-4 text-sm text-gray-500">
+                              <span className="flex items-center">
+                                <Mail size={14} className="mr-1" />
+                                {lead.email}
+                              </span>
+                              <span className="flex items-center">
+                                <Phone size={14} className="mr-1" />
+                                {lead.phone}
+                              </span>
+                              <span className="flex items-center">
+                                <Calendar size={14} className="mr-1" />
+                                {lead.eventDate}
+                              </span>
+                            </div>
+                          </div>
+                        </div>
+                        <div className="flex items-center space-x-3">
+                          <span className={`px-3 py-1 text-xs font-medium rounded-full ${getStatusColor(lead.status)}`}>
+                            {lead.status}
+                          </span>
+                          <div className="text-right">
+                            <p className="text-sm font-medium text-gray-900">
+                              ${(lead.budget || 0).toLocaleString()}
+                            </p>
+                            <p className="text-xs text-gray-500">{lead.guestCount} guests</p>
+                          </div>
+                          <button className="p-1 hover:bg-gray-100 rounded">
+                            <MoreVertical size={18} className="text-gray-400" />
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  ))
+                )}
+              </div>
+            ) : (
+              <div className="text-center py-12">
+                <p className="text-gray-500">Content for {activeTab} coming soon...</p>
               </div>
             )}
           </div>
