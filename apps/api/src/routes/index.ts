@@ -4,6 +4,9 @@ import crmRoutes from './crm.routes';
 import projectsRoutes from './projects.routes';
 import statsRoutes from './stats.routes';
 import guestsRoutes from './guests.routes';
+import vendorsRoutes from './vendors.routes';
+import websitesRoutes from './websites.routes';
+import budgetRoutes from './budget.routes';
 
 const router = Router();
 
@@ -13,6 +16,9 @@ router.use('/crm', crmRoutes);
 router.use('/projects', projectsRoutes);
 router.use('/stats', statsRoutes);
 router.use('/guests', guestsRoutes);
+router.use('/vendors', vendorsRoutes);
+router.use('/websites', websitesRoutes);
+router.use('/budget', budgetRoutes);
 
 // Health check
 router.get('/health', (req, res) => {

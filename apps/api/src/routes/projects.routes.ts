@@ -84,6 +84,26 @@ router.put('/:id', authenticateToken, async (req, res) => {
   }
 });
 
+// Delete project
+router.delete('/:id', authenticateToken, async (req, res) => {
+  try {
+    // Delete all related data first
+    await prisma.guest.deleteMany({
+      where: { projectId: req.params.id }
+    });
+    
+    // Delete the project
+    await prisma.project.delete({
+      where: { id: req.params.id }
+    });
+    
+    res.json({ success: true });
+  } catch (error) {
+    console.error('Error deleting project:', error);
+    res.status(500).json({ error: 'Failed to delete project' });
+  }
+});
+
 // Get project guests
 router.get('/:projectId/guests', authenticateToken, async (req, res) => {
   try {
