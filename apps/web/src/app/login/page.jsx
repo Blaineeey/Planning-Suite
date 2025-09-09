@@ -1,222 +1,199 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { Eye, EyeOff, Mail, Lock, ArrowRight, AlertCircle } from 'lucide-react';
+import useAuthStore from '@/store/authStore';
+import { Mail, Lock, ArrowRight, Loader, Heart } from 'lucide-react';
 
 export default function LoginPage() {
   const router = useRouter();
-  const [showPassword, setShowPassword] = useState(false);
-  const [isLoading, setIsLoading] = useState(false);
-  const [error, setError] = useState('');
+  const { login, isLoading, error, clearError, isAuthenticated } = useAuthStore();
   const [formData, setFormData] = useState({
-    email: 'demo@example.com',
-    password: 'demo123'
+    email: '',
+    password: ''
   });
+  const [formError, setFormError] = useState('');
+
+  useEffect(() => {
+    if (isAuthenticated) {
+      router.push('/dashboard');
+    }
+  }, [isAuthenticated, router]);
+
+  useEffect(() => {
+    clearError();
+  }, [clearError]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    setIsLoading(true);
-    setError('');
+    setFormError('');
+    
+    if (!formData.email || !formData.password) {
+      setFormError('Please fill in all fields');
+      return;
+    }
 
-    try {
-      // Direct API call without using the store initially
-      const response = await fetch('http://localhost:3001/api/auth/login', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          email: formData.email,
-          password: formData.password
-        })
-      });
-
-      const data = await response.json();
-      
-      if (response.ok && data.success && data.token) {
-        // Store token
-        localStorage.setItem('auth_token', data.token);
-        
-        // Store user data
-        localStorage.setItem('user', JSON.stringify(data.user));
-        
-        // Redirect to dashboard
-        router.push('/dashboard');
-      } else {
-        setError(data.error || 'Login failed. Please check your credentials.');
-      }
-    } catch (err) {
-      console.error('Login error:', err);
-      setError('Unable to connect to server. Please make sure the API is running on port 3001.');
-    } finally {
-      setIsLoading(false);
+    const result = await login(formData.email, formData.password);
+    
+    if (result.success) {
+      router.push('/dashboard');
+    } else {
+      setFormError(result.error || 'Invalid email or password');
     }
   };
 
-  const testAPIConnection = async () => {
-    try {
-      const response = await fetch('http://localhost:3001/health');
-      const data = await response.json();
-      if (data.status === 'ok') {
-        alert('✅ API is connected and working!');
-      } else {
-        alert('⚠️ API responded but status is not OK');
-      }
-    } catch (err) {
-      alert('❌ Cannot connect to API. Please start the API server on port 3001');
-    }
+  const handleChange = (e) => {
+    setFormData({
+      ...formData,
+      [e.target.name]: e.target.value
+    });
+    setFormError('');
   };
 
-  const clearStorage = () => {
-    localStorage.removeItem('auth_token');
-    localStorage.removeItem('user');
-    localStorage.removeItem('organization');
-    setError('');
-    alert('✅ Storage cleared! You can now login fresh.');
-  };
-
-  const debugAuth = async () => {
-    try {
-      const response = await fetch('http://localhost:3001/api/auth/debug');
-      const data = await response.json();
-      console.log('Debug info:', data);
-      alert(`Debug Info:\n\nUser exists: ${data.userExists}\nEmail: ${data.email || 'N/A'}\nPassword validation: ${data.passwordValidation || 'N/A'}\n\n${data.message}`);
-    } catch (err) {
-      alert('❌ Cannot connect to API debug endpoint');
+  // Demo login function
+  const handleDemoLogin = async () => {
+    setFormData({
+      email: 'demo@example.com',
+      password: 'demo123'
+    });
+    const result = await login('demo@example.com', 'demo123');
+    if (result.success) {
+      router.push('/dashboard');
+    } else {
+      setFormError('Demo account not available. Please register a new account.');
     }
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-pink-50 via-purple-50 to-blue-50 flex items-center justify-center p-4">
+    <div className="min-h-screen bg-gradient-to-br from-pink-50 via-white to-purple-50 flex items-center justify-center p-4">
       <div className="w-full max-w-md">
-        {/* Logo */}
+        {/* Logo and Title */}
         <div className="text-center mb-8">
           <div className="inline-flex items-center justify-center w-16 h-16 bg-gradient-to-br from-pink-500 to-purple-600 rounded-2xl mb-4">
-            <span className="text-white font-bold text-2xl">RB</span>
+            <Heart size={32} className="text-white" />
           </div>
           <h1 className="text-3xl font-bold text-gray-900">Welcome Back</h1>
-          <p className="text-gray-600 mt-2">Sign in to your Ruban Bleu account</p>
+          <p className="text-gray-600 mt-2">Sign in to your wedding planning suite</p>
         </div>
 
         {/* Login Form */}
         <div className="bg-white rounded-2xl shadow-xl p-8">
-          {/* Debug Buttons */}
-          <div className="grid grid-cols-3 gap-2 mb-4">
-            <button
-              type="button"
-              onClick={testAPIConnection}
-              className="px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 text-sm"
-            >
-              🔧 Test API
-            </button>
-            <button
-              type="button"
-              onClick={clearStorage}
-              className="px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 text-sm"
-            >
-              🗑️ Clear
-            </button>
-            <button
-              type="button"
-              onClick={debugAuth}
-              className="px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 text-sm"
-            >
-              🐛 Debug
-            </button>
-          </div>
-
           <form onSubmit={handleSubmit} className="space-y-6">
+            {/* Error Message */}
+            {(formError || error) && (
+              <div className="p-3 bg-red-50 border border-red-200 rounded-lg">
+                <p className="text-sm text-red-600">{formError || error}</p>
+              </div>
+            )}
+
             {/* Email Input */}
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
+              <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-2">
                 Email Address
               </label>
               <div className="relative">
-                <Mail className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={20} />
+                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                  <Mail size={18} className="text-gray-400" />
+                </div>
                 <input
+                  id="email"
+                  name="email"
                   type="email"
-                  value={formData.email}
-                  onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                  className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent text-gray-900 placeholder-gray-400 bg-white"
-                  placeholder="you@example.com"
+                  autoComplete="email"
                   required
+                  value={formData.email}
+                  onChange={handleChange}
+                  className="block w-full pl-10 pr-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent text-gray-900 placeholder-gray-400"
+                  placeholder="you@example.com"
                 />
               </div>
             </div>
 
             {/* Password Input */}
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
+              <label htmlFor="password" className="block text-sm font-medium text-gray-700 mb-2">
                 Password
               </label>
               <div className="relative">
-                <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={20} />
+                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                  <Lock size={18} className="text-gray-400" />
+                </div>
                 <input
-                  type={showPassword ? 'text' : 'password'}
-                  value={formData.password}
-                  onChange={(e) => setFormData({ ...formData, password: e.target.value })}
-                  className="w-full pl-10 pr-12 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent text-gray-900 placeholder-gray-400 bg-white"
-                  placeholder="Enter your password"
+                  id="password"
+                  name="password"
+                  type="password"
+                  autoComplete="current-password"
                   required
+                  value={formData.password}
+                  onChange={handleChange}
+                  className="block w-full pl-10 pr-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent text-gray-900 placeholder-gray-400"
+                  placeholder="••••••••"
                 />
-                <button
-                  type="button"
-                  onClick={() => setShowPassword(!showPassword)}
-                  className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600"
-                >
-                  {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
-                </button>
               </div>
             </div>
 
-            {/* Error Message */}
-            {error && (
-              <div className="bg-red-50 border border-red-200 text-red-600 px-4 py-3 rounded-lg text-sm flex items-start">
-                <AlertCircle size={18} className="mr-2 flex-shrink-0 mt-0.5" />
-                <span>{error}</span>
+            {/* Remember Me & Forgot Password */}
+            <div className="flex items-center justify-between">
+              <div className="flex items-center">
+                <input
+                  id="remember-me"
+                  name="remember-me"
+                  type="checkbox"
+                  className="h-4 w-4 text-purple-600 focus:ring-purple-500 border-gray-300 rounded"
+                />
+                <label htmlFor="remember-me" className="ml-2 block text-sm text-gray-700">
+                  Remember me
+                </label>
               </div>
-            )}
+              <Link href="/forgot-password" className="text-sm text-purple-600 hover:text-purple-700">
+                Forgot password?
+              </Link>
+            </div>
 
             {/* Submit Button */}
             <button
               type="submit"
               disabled={isLoading}
-              className="w-full bg-gradient-to-r from-pink-500 to-purple-600 text-white font-medium py-3 px-4 rounded-lg hover:from-pink-600 hover:to-purple-700 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center"
+              className="w-full flex items-center justify-center px-4 py-2 bg-gradient-to-r from-pink-500 to-purple-600 text-white font-medium rounded-lg hover:from-pink-600 hover:to-purple-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-purple-500 disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {isLoading ? (
-                <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                <>
+                  <Loader size={18} className="animate-spin mr-2" />
+                  Signing in...
+                </>
               ) : (
                 <>
                   Sign In
-                  <ArrowRight className="ml-2" size={20} />
+                  <ArrowRight size={18} className="ml-2" />
                 </>
               )}
             </button>
+
+            {/* Demo Account Button */}
+            <button
+              type="button"
+              onClick={handleDemoLogin}
+              className="w-full px-4 py-2 bg-gray-100 text-gray-700 font-medium rounded-lg hover:bg-gray-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500"
+            >
+              Use Demo Account
+            </button>
           </form>
 
-          {/* Demo Credentials */}
-          <div className="mt-6 p-4 bg-blue-50 rounded-lg">
-            <p className="text-sm font-medium text-blue-900 mb-1">Demo Credentials:</p>
-            <p className="text-xs text-blue-700">Email: demo@example.com</p>
-            <p className="text-xs text-blue-700">Password: demo123</p>
-          </div>
-
-          {/* Links */}
-          <div className="mt-6 space-y-2 text-center">
+          {/* Sign Up Link */}
+          <div className="mt-6 text-center">
             <p className="text-sm text-gray-600">
               Don't have an account?{' '}
               <Link href="/register" className="font-medium text-purple-600 hover:text-purple-700">
                 Sign up for free
               </Link>
             </p>
-            <p className="text-sm">
-              <Link href="/test" className="text-purple-600 hover:text-purple-700">
-                Go to Test Page →
-              </Link>
-            </p>
           </div>
+        </div>
+
+        {/* Footer */}
+        <div className="mt-8 text-center text-sm text-gray-500">
+          <p>© 2024 Ruban Bleu. All rights reserved.</p>
         </div>
       </div>
     </div>
