@@ -16,41 +16,33 @@ const useAuthStore = create((set, get) => ({
     if (typeof window === 'undefined') return;
     
     set({ isLoading: true });
+    const token = localStorage.getItem('auth_token');
+    
+    if (!token) {
+      set({ 
+        isLoading: false,
+        isAuthenticated: false,
+        user: null,
+        token: null
+      });
+      return;
+    }
+
     try {
-      const token = localStorage.getItem('auth_token');
-      if (token) {
-        try {
-          const response = await api.auth.me();
-          if (response && response.user) {
-            set({
-              user: response.user,
-              organization: response.organization,
-              token,
-              isAuthenticated: true,
-              isLoading: false,
-            });
-          } else {
-            // Token exists but user not found, clear it
-            localStorage.removeItem('auth_token');
-            set({ 
-              isLoading: false,
-              isAuthenticated: false,
-              user: null,
-              token: null
-            });
-          }
-        } catch (error) {
-          // Token is invalid or expired
-          console.log('Token validation failed, clearing auth');
-          localStorage.removeItem('auth_token');
-          set({ 
-            isLoading: false,
-            isAuthenticated: false,
-            user: null,
-            token: null
-          });
-        }
+      const response = await api.auth.me();
+      if (response && response.user) {
+        set({
+          user: response.user,
+          organization: response.organization,
+          token,
+          isAuthenticated: true,
+          isLoading: false,
+        });
       } else {
+        // Token exists but user not found, clear it
+        localStorage.removeItem('auth_token');
+        localStorage.removeItem('user');
+        localStorage.removeItem('organization');
         set({ 
           isLoading: false,
           isAuthenticated: false,
@@ -59,8 +51,10 @@ const useAuthStore = create((set, get) => ({
         });
       }
     } catch (error) {
-      console.error('Auth init error:', error);
+      // Token is invalid or expired, silently clear it
       localStorage.removeItem('auth_token');
+      localStorage.removeItem('user');
+      localStorage.removeItem('organization');
       set({ 
         isLoading: false,
         isAuthenticated: false,
@@ -76,9 +70,15 @@ const useAuthStore = create((set, get) => ({
     try {
       const response = await api.auth.login({ email, password });
       
-      if (response.success && response.token) {
-        // Store token
+      if (response && response.token) {
+        // Store token and user data
         localStorage.setItem('auth_token', response.token);
+        if (response.user) {
+          localStorage.setItem('user', JSON.stringify(response.user));
+        }
+        if (response.organization) {
+          localStorage.setItem('organization', JSON.stringify(response.organization));
+        }
         
         set({
           user: response.user,
@@ -89,9 +89,14 @@ const useAuthStore = create((set, get) => ({
           error: null
         });
         
-        return response;
+        return { success: true };
       } else {
-        throw new Error(response.error || 'Login failed');
+        set({ 
+          error: 'Invalid credentials',
+          isLoading: false,
+          isAuthenticated: false
+        });
+        return { success: false, error: 'Invalid credentials' };
       }
     } catch (error) {
       set({ 
@@ -99,7 +104,7 @@ const useAuthStore = create((set, get) => ({
         isLoading: false,
         isAuthenticated: false
       });
-      throw error;
+      return { success: false, error: error.message || 'Login failed' };
     }
   },
 
@@ -109,9 +114,15 @@ const useAuthStore = create((set, get) => ({
     try {
       const response = await api.auth.register(data);
       
-      if (response.success && response.token) {
-        // Store token
+      if (response && response.token) {
+        // Store token and user data
         localStorage.setItem('auth_token', response.token);
+        if (response.user) {
+          localStorage.setItem('user', JSON.stringify(response.user));
+        }
+        if (response.organization) {
+          localStorage.setItem('organization', JSON.stringify(response.organization));
+        }
         
         set({
           user: response.user,
@@ -122,9 +133,14 @@ const useAuthStore = create((set, get) => ({
           error: null
         });
         
-        return response;
+        return { success: true };
       } else {
-        throw new Error(response.error || 'Registration failed');
+        set({ 
+          error: 'Registration failed',
+          isLoading: false,
+          isAuthenticated: false
+        });
+        return { success: false, error: 'Registration failed' };
       }
     } catch (error) {
       set({ 
@@ -132,16 +148,21 @@ const useAuthStore = create((set, get) => ({
         isLoading: false,
         isAuthenticated: false
       });
-      throw error;
+      return { success: false, error: error.message || 'Registration failed' };
     }
   },
 
   // Logout
   logout: () => {
+    // Clear all storage
     localStorage.removeItem('auth_token');
     localStorage.removeItem('user');
     localStorage.removeItem('organization');
+    
+    // Clear API token
     api.auth.logout();
+    
+    // Reset state
     set({
       user: null,
       organization: null,
@@ -156,6 +177,9 @@ const useAuthStore = create((set, get) => ({
     set((state) => ({
       user: { ...state.user, ...userData }
     }));
+    // Update localStorage
+    const currentUser = JSON.parse(localStorage.getItem('user') || '{}');
+    localStorage.setItem('user', JSON.stringify({ ...currentUser, ...userData }));
   },
 
   // Clear error
