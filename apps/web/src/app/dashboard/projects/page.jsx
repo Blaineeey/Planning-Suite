@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import DashboardLayout from '@/components/DashboardLayout';
+import ProjectForm from '@/components/projects/ProjectForm';
 import { api } from '@/lib/api';
 import {
   FolderOpen,
@@ -17,7 +18,11 @@ import {
   Filter,
   ChevronRight,
   Clock,
-  CheckCircle
+  CheckCircle,
+  Edit,
+  Trash2,
+  MoreVertical,
+  AlertCircle
 } from 'lucide-react';
 
 export default function ProjectsPage() {
@@ -26,6 +31,12 @@ export default function ProjectsPage() {
   const [searchTerm, setSearchTerm] = useState('');
   const [filterStatus, setFilterStatus] = useState('all');
   const [loading, setLoading] = useState(true);
+  
+  // Form states
+  const [showProjectForm, setShowProjectForm] = useState(false);
+  const [editingProject, setEditingProject] = useState(null);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [deletingProject, setDeletingProject] = useState(null);
 
   useEffect(() => {
     fetchProjects();
@@ -43,6 +54,60 @@ export default function ProjectsPage() {
     }
   };
 
+  // CRUD Operations
+  const handleCreateProject = async (projectData) => {
+    try {
+      const newProject = await api.projects.create(projectData);
+      if (newProject) {
+        setProjects([newProject, ...projects]);
+        setShowProjectForm(false);
+      }
+    } catch (error) {
+      console.error('Failed to create project:', error);
+      alert('Failed to create project. Please try again.');
+    }
+  };
+
+  const handleUpdateProject = async (projectData) => {
+    try {
+      const updatedProject = await api.projects.update(editingProject.id, projectData);
+      if (updatedProject) {
+        setProjects(projects.map(project => 
+          project.id === editingProject.id ? updatedProject : project
+        ));
+        setEditingProject(null);
+        setShowProjectForm(false);
+      }
+    } catch (error) {
+      console.error('Failed to update project:', error);
+      alert('Failed to update project. Please try again.');
+    }
+  };
+
+  const handleDeleteProject = async () => {
+    if (!deletingProject) return;
+    
+    try {
+      await api.projects.delete(deletingProject.id);
+      setProjects(projects.filter(project => project.id !== deletingProject.id));
+      setShowDeleteConfirm(false);
+      setDeletingProject(null);
+    } catch (error) {
+      console.error('Failed to delete project:', error);
+      alert('Failed to delete project. Please try again.');
+    }
+  };
+
+  const handleEditClick = (project) => {
+    setEditingProject(project);
+    setShowProjectForm(true);
+  };
+
+  const handleDeleteClick = (project) => {
+    setDeletingProject(project);
+    setShowDeleteConfirm(true);
+  };
+
   const getStatusColor = (status) => {
     switch (status) {
       case 'PLANNING': return 'bg-blue-100 text-blue-700';
@@ -54,7 +119,6 @@ export default function ProjectsPage() {
   };
 
   const getProjectProgress = (project) => {
-    // Calculate based on dates or use a default
     if (project.eventDate) {
       const now = new Date();
       const eventDate = new Date(project.eventDate);
@@ -105,7 +169,10 @@ export default function ProjectsPage() {
               </button>
             </div>
             <button
-              onClick={() => alert('Create Project feature coming soon!')}
+              onClick={() => {
+                setEditingProject(null);
+                setShowProjectForm(true);
+              }}
               className="px-4 py-2 bg-gradient-to-r from-pink-500 to-purple-600 text-white rounded-lg hover:from-pink-600 hover:to-purple-700"
             >
               <Plus size={18} className="inline mr-2" />
@@ -209,7 +276,10 @@ export default function ProjectsPage() {
             <FolderOpen size={48} className="text-gray-300 mx-auto mb-4" />
             <p className="text-gray-500 mb-4">No projects found</p>
             <button
-              onClick={() => alert('Create Project feature coming soon!')}
+              onClick={() => {
+                setEditingProject(null);
+                setShowProjectForm(true);
+              }}
               className="inline-flex items-center px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700"
             >
               <Plus size={16} className="mr-2" />
@@ -221,10 +291,28 @@ export default function ProjectsPage() {
             {filteredProjects.map((project) => {
               const progress = getProjectProgress(project);
               return (
-                <div key={project.id} className="bg-white rounded-xl shadow-sm hover:shadow-md transition-shadow">
+                <div key={project.id} className="bg-white rounded-xl shadow-sm hover:shadow-md transition-shadow relative group">
+                  {/* Action Buttons */}
+                  <div className="absolute top-4 right-4 z-10 opacity-0 group-hover:opacity-100 transition-opacity">
+                    <div className="flex space-x-2">
+                      <button
+                        onClick={() => handleEditClick(project)}
+                        className="p-2 bg-white rounded-lg shadow-md hover:bg-gray-50"
+                      >
+                        <Edit size={16} className="text-gray-600" />
+                      </button>
+                      <button
+                        onClick={() => handleDeleteClick(project)}
+                        className="p-2 bg-white rounded-lg shadow-md hover:bg-red-50"
+                      >
+                        <Trash2 size={16} className="text-red-600" />
+                      </button>
+                    </div>
+                  </div>
+
                   {/* Project Image */}
                   <div className="h-48 bg-gradient-to-br from-pink-400 to-purple-500 rounded-t-xl relative">
-                    <div className="absolute top-4 right-4">
+                    <div className="absolute top-4 left-4">
                       <span className={`px-2 py-1 text-xs font-medium rounded-full ${getStatusColor(project.status)}`}>
                         {project.status}
                       </span>
@@ -275,9 +363,12 @@ export default function ProjectsPage() {
                           ${(project.budget || 0).toLocaleString()}
                         </span>
                       </div>
-                      <button className="text-purple-600 hover:text-purple-700 font-medium text-sm">
+                      <Link 
+                        href={`/dashboard/projects/${project.id}`}
+                        className="text-purple-600 hover:text-purple-700 font-medium text-sm"
+                      >
                         View <ChevronRight size={16} className="inline" />
-                      </button>
+                      </Link>
                     </div>
                   </div>
                 </div>
@@ -307,6 +398,9 @@ export default function ProjectsPage() {
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                     Status
                   </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Actions
+                  </th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-200">
@@ -335,6 +429,28 @@ export default function ProjectsPage() {
                         {project.status}
                       </span>
                     </td>
+                    <td className="px-6 py-4">
+                      <div className="flex items-center space-x-2">
+                        <button
+                          onClick={() => handleEditClick(project)}
+                          className="text-gray-600 hover:text-gray-900"
+                        >
+                          <Edit size={16} />
+                        </button>
+                        <button
+                          onClick={() => handleDeleteClick(project)}
+                          className="text-red-600 hover:text-red-900"
+                        >
+                          <Trash2 size={16} />
+                        </button>
+                        <Link
+                          href={`/dashboard/projects/${project.id}`}
+                          className="text-purple-600 hover:text-purple-900"
+                        >
+                          <ChevronRight size={16} />
+                        </Link>
+                      </div>
+                    </td>
                   </tr>
                 ))}
               </tbody>
@@ -342,6 +458,67 @@ export default function ProjectsPage() {
           </div>
         )}
       </div>
+
+      {/* Project Form Modal */}
+      <ProjectForm
+        isOpen={showProjectForm}
+        onClose={() => {
+          setShowProjectForm(false);
+          setEditingProject(null);
+        }}
+        onSubmit={editingProject ? handleUpdateProject : handleCreateProject}
+        project={editingProject}
+      />
+
+      {/* Delete Confirmation Modal */}
+      {showDeleteConfirm && (
+        <div className="fixed inset-0 z-50 overflow-y-auto">
+          <div className="flex items-center justify-center min-h-screen px-4 pt-4 pb-20 text-center">
+            <div 
+              className="fixed inset-0 transition-opacity bg-gray-500 bg-opacity-75"
+              onClick={() => setShowDeleteConfirm(false)}
+            />
+            <div className="inline-block align-bottom bg-white rounded-lg text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-lg sm:w-full">
+              <div className="bg-white px-4 pt-5 pb-4 sm:p-6 sm:pb-4">
+                <div className="sm:flex sm:items-start">
+                  <div className="mx-auto flex-shrink-0 flex items-center justify-center h-12 w-12 rounded-full bg-red-100 sm:mx-0 sm:h-10 sm:w-10">
+                    <AlertCircle className="h-6 w-6 text-red-600" />
+                  </div>
+                  <div className="mt-3 text-center sm:mt-0 sm:ml-4 sm:text-left">
+                    <h3 className="text-lg leading-6 font-medium text-gray-900">
+                      Delete Project
+                    </h3>
+                    <div className="mt-2">
+                      <p className="text-sm text-gray-500">
+                        Are you sure you want to delete "{deletingProject?.name}"? 
+                        This will also delete all associated data including guests, tasks, and budget information.
+                        This action cannot be undone.
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+              <div className="bg-gray-50 px-4 py-3 sm:px-6 sm:flex sm:flex-row-reverse">
+                <button
+                  onClick={handleDeleteProject}
+                  className="w-full inline-flex justify-center rounded-md border border-transparent shadow-sm px-4 py-2 bg-red-600 text-base font-medium text-white hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 sm:ml-3 sm:w-auto sm:text-sm"
+                >
+                  Delete Project
+                </button>
+                <button
+                  onClick={() => {
+                    setShowDeleteConfirm(false);
+                    setDeletingProject(null);
+                  }}
+                  className="mt-3 w-full inline-flex justify-center rounded-md border border-gray-300 shadow-sm px-4 py-2 bg-white text-base font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 sm:mt-0 sm:ml-3 sm:w-auto sm:text-sm"
+                >
+                  Cancel
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </DashboardLayout>
   );
 }
