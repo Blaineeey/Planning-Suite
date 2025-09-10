@@ -1,0 +1,459 @@
+// This is your Prisma schema file
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ============= CORE MODELS =============
+
+model Organization {
+  id        String    @id @default(cuid())
+  name      String
+  domain    String?   @unique
+  logo      String?
+  settings  Json?
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  
+  users     User[]
+  projects  Project[]
+  leads     Lead[]
+  vendors   Vendor[]
+  proposals Proposal[]
+  contracts Contract[]
+  invoices  Invoice[]
+  payments  Payment[]
+  signatureRequests SignatureRequest[]
+  auditLogs AuditLog[]
+}
+
+model User {
+  id                String         @id @default(cuid())
+  email             String         @unique
+  password          String
+  firstName         String?
+  lastName          String?
+  role              Role           @default(PLANNER)
+  organizationId    String
+  organization      Organization   @relation(fields: [organizationId], references: [id])
+  stripeCustomerId  String?
+  createdAt         DateTime       @default(now())
+  updatedAt         DateTime       @updatedAt
+  auditLogs         AuditLog[]
+}
+
+enum Role {
+  ADMIN
+  PLANNER
+  CLIENT
+  VENDOR
+  GUEST
+}
+
+// ============= CRM MODELS =============
+
+model Lead {
+  id             String       @id @default(cuid())
+  firstName      String
+  lastName       String
+  email          String
+  phone          String?
+  eventDate      DateTime?
+  eventType      String?
+  guestCount     Int?
+  budget         Float?
+  venue          String?
+  source         String?
+  status         LeadStatus   @default(NEW)
+  notes          String?
+  organizationId String
+  organization   Organization @relation(fields: [organizationId], references: [id])
+  proposals      Proposal[]
+  contracts      Contract[]
+  invoices       Invoice[]
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+}
+
+enum LeadStatus {
+  NEW
+  CONTACTED
+  QUALIFIED
+  PROPOSAL
+  CLOSED_WON
+  CLOSED_LOST
+}
+
+model Proposal {
+  id             String       @id @default(cuid())
+  number         String       @unique
+  title          String
+  leadId         String?
+  lead           Lead?        @relation(fields: [leadId], references: [id])
+  content        String?      @db.Text
+  items          Json?
+  subtotal       Float?
+  tax            Float?
+  discount       Float?
+  total          Float?
+  validUntil     DateTime?
+  status         ProposalStatus @default(DRAFT)
+  organizationId String
+  organization   Organization @relation(fields: [organizationId], references: [id])
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+}
+
+enum ProposalStatus {
+  DRAFT
+  SENT
+  VIEWED
+  ACCEPTED
+  DECLINED
+  EXPIRED
+}
+
+model Contract {
+  id                String             @id @default(cuid())
+  number            String             @unique
+  title             String
+  leadId            String?
+  lead              Lead?              @relation(fields: [leadId], references: [id])
+  content           String?            @db.Text
+  terms             String?            @db.Text
+  status            ContractStatus     @default(DRAFT)
+  signedAt          DateTime?
+  organizationId    String
+  organization      Organization       @relation(fields: [organizationId], references: [id])
+  signatureRequests SignatureRequest[]
+  createdAt         DateTime           @default(now())
+  updatedAt         DateTime           @updatedAt
+}
+
+enum ContractStatus {
+  DRAFT
+  SENT
+  SIGNED
+  CANCELLED
+}
+
+model SignatureRequest {
+  id             String       @id @default(cuid())
+  contractId     String
+  contract       Contract     @relation(fields: [contractId], references: [id])
+  recipientEmail String
+  recipientName  String
+  token          String       @unique
+  status         SignatureStatus @default(PENDING)
+  signedAt       DateTime?
+  signatureData  String?      @db.Text
+  signatureHash  String?
+  signedBy       String?
+  ipAddress      String?
+  expiresAt      DateTime
+  organizationId String
+  organization   Organization @relation(fields: [organizationId], references: [id])
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+}
+
+enum SignatureStatus {
+  PENDING
+  SIGNED
+  EXPIRED
+  CANCELLED
+}
+
+model Invoice {
+  id             String       @id @default(cuid())
+  number         String       @unique
+  leadId         String?
+  lead           Lead?        @relation(fields: [leadId], references: [id])
+  projectId      String?
+  project        Project?     @relation(fields: [projectId], references: [id])
+  items          Json?
+  subtotal       Float?
+  tax            Float?
+  total          Float?
+  dueDate        DateTime?
+  status         InvoiceStatus @default(DRAFT)
+  paidAt         DateTime?
+  paymentId      String?
+  organizationId String
+  organization   Organization @relation(fields: [organizationId], references: [id])
+  payments       Payment[]
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+}
+
+enum InvoiceStatus {
+  DRAFT
+  SENT
+  PAID
+  PARTIAL
+  OVERDUE
+  CANCELLED
+}
+
+model Payment {
+  id             String       @id @default(cuid())
+  invoiceId      String
+  invoice        Invoice      @relation(fields: [invoiceId], references: [id])
+  amount         Float
+  paymentMethod  String
+  transactionId  String?
+  status         PaymentStatus @default(PENDING)
+  metadata       Json?
+  organizationId String
+  organization   Organization @relation(fields: [organizationId], references: [id])
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+}
+
+enum PaymentStatus {
+  PENDING
+  PROCESSING
+  COMPLETED
+  FAILED
+  REFUNDED
+}
+
+// ============= PROJECT MODELS =============
+
+model Project {
+  id           String       @id @default(cuid())
+  name         String
+  type         ProjectType  @default(WEDDING)
+  status       ProjectStatus @default(PLANNING)
+  eventDate    DateTime?
+  clientName   String?
+  clientEmail  String?
+  clientPhone  String?
+  venue        Json?
+  budget       Float?
+  guestCount   Int?
+  notes        String?      @db.Text
+  organizationId String
+  organization Organization @relation(fields: [organizationId], references: [id])
+  guests       Guest[]
+  tasks        Task[]
+  timelines    Timeline[]
+  budgets      Budget[]
+  websites     Website[]
+  invoices     Invoice[]
+  createdAt    DateTime     @default(now())
+  updatedAt    DateTime     @updatedAt
+}
+
+enum ProjectType {
+  WEDDING
+  ENGAGEMENT
+  ANNIVERSARY
+  BIRTHDAY
+  CORPORATE
+  OTHER
+}
+
+enum ProjectStatus {
+  PLANNING
+  ACTIVE
+  COMPLETED
+  CANCELLED
+}
+
+model Guest {
+  id                 String    @id @default(cuid())
+  projectId          String
+  project            Project   @relation(fields: [projectId], references: [id])
+  firstName          String
+  lastName           String
+  email              String?
+  phone              String?
+  side               GuestSide @default(BOTH)
+  ageGroup           AgeGroup  @default(ADULT)
+  rsvpStatus         RSVPStatus @default(PENDING)
+  plusOne            Boolean   @default(false)
+  plusOneName        String?
+  mealSelection      String?
+  dietaryRestrictions String?
+  tableId            String?
+  seatNumber         Int?
+  notes              String?
+  createdAt          DateTime  @default(now())
+  updatedAt          DateTime  @updatedAt
+}
+
+enum GuestSide {
+  BRIDE
+  GROOM
+  BOTH
+}
+
+enum AgeGroup {
+  ADULT
+  CHILD
+  INFANT
+}
+
+enum RSVPStatus {
+  PENDING
+  YES
+  NO
+  MAYBE
+}
+
+model Task {
+  id          String     @id @default(cuid())
+  projectId   String
+  project     Project    @relation(fields: [projectId], references: [id])
+  title       String
+  description String?
+  category    String?
+  dueDate     DateTime?
+  assignedTo  String?
+  status      TaskStatus @default(TODO)
+  priority    Priority   @default(MEDIUM)
+  createdAt   DateTime   @default(now())
+  updatedAt   DateTime   @updatedAt
+}
+
+enum TaskStatus {
+  TODO
+  IN_PROGRESS
+  COMPLETED
+  CANCELLED
+}
+
+enum Priority {
+  LOW
+  MEDIUM
+  HIGH
+  URGENT
+}
+
+model Timeline {
+  id        String   @id @default(cuid())
+  projectId String
+  project   Project  @relation(fields: [projectId], references: [id])
+  time      String
+  title     String
+  location  String?
+  vendor    String?
+  notes     String?
+  order     Int
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Budget {
+  id         String           @id @default(cuid())
+  projectId  String
+  project    Project          @relation(fields: [projectId], references: [id])
+  totalBudget Float           @default(0)
+  categories BudgetCategory[]
+  createdAt  DateTime         @default(now())
+  updatedAt  DateTime         @updatedAt
+}
+
+model BudgetCategory {
+  id       String   @id @default(cuid())
+  budgetId String
+  budget   Budget   @relation(fields: [budgetId], references: [id])
+  name     String
+  planned  Float    @default(0)
+  actual   Float    @default(0)
+  paid     Float    @default(0)
+  notes    String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+// ============= VENDOR MODELS =============
+
+model Vendor {
+  id               String       @id @default(cuid())
+  name             String
+  category         String
+  contactName      String?
+  email            String?
+  phone            String?
+  website          String?
+  address          String?
+  city             String?
+  state            String?
+  zip              String?
+  priceRange       PriceRange   @default(MODERATE)
+  rating           Int          @default(5)
+  commission       Float?
+  notes            String?      @db.Text
+  services         String[]
+  preferredVendor  Boolean      @default(false)
+  instagram        String?
+  portfolio        String?
+  organizationId   String
+  organization     Organization @relation(fields: [organizationId], references: [id])
+  createdAt        DateTime     @default(now())
+  updatedAt        DateTime     @updatedAt
+}
+
+enum PriceRange {
+  BUDGET
+  MODERATE
+  PREMIUM
+  LUXURY
+}
+
+// ============= WEBSITE MODELS =============
+
+model Website {
+  id                 String    @id @default(cuid())
+  projectId          String
+  project            Project   @relation(fields: [projectId], references: [id])
+  subdomain          String    @unique
+  template           String    @default("elegant")
+  primaryColor       String    @default("#E91E63")
+  secondaryColor     String    @default("#9C27B0")
+  heroTitle          String?
+  heroSubtitle       String?
+  heroImage          String?
+  storyTitle         String?
+  storyContent       String?   @db.Text
+  brideStory         String?   @db.Text
+  groomStory         String?   @db.Text
+  ceremonyLocation   String?
+  ceremonyAddress    String?
+  ceremonyTime       String?
+  receptionLocation  String?
+  receptionAddress   String?
+  receptionTime      String?
+  rsvpEnabled        Boolean   @default(true)
+  rsvpDeadline       DateTime?
+  galleryImages      String[]
+  registryEnabled    Boolean   @default(true)
+  registryLinks      Json?
+  accommodations     Json?
+  faqs               Json?
+  isPublished        Boolean   @default(false)
+  analytics          Json?
+  createdAt          DateTime  @default(now())
+  updatedAt          DateTime  @updatedAt
+}
+
+// ============= AUDIT LOG =============
+
+model AuditLog {
+  id             String       @id @default(cuid())
+  action         String
+  entityType     String
+  entityId       String
+  metadata       Json?
+  userId         String?
+  user           User?        @relation(fields: [userId], references: [id])
+  organizationId String
+  organization   Organization @relation(fields: [organizationId], references: [id])
+  createdAt      DateTime     @default(now())
+}
