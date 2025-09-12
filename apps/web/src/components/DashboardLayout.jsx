@@ -20,7 +20,8 @@ import {
   ChevronDown,
   Calendar,
   Bell,
-  Plus
+  Plus,
+  CreditCard
 } from 'lucide-react';
 
 export default function DashboardLayout({ children }) {
@@ -46,6 +47,7 @@ export default function DashboardLayout({ children }) {
   const navigation = [
     { name: 'Dashboard', href: '/dashboard', icon: Home },
     { name: 'CRM', href: '/dashboard/crm', icon: Users },
+    { name: 'Payments', href: '/dashboard/payments', icon: CreditCard },
     { name: 'Projects', href: '/dashboard/projects', icon: FolderOpen },
     { name: 'Guests', href: '/dashboard/guests', icon: UserCheck },
     { name: 'Vendors', href: '/dashboard/vendors', icon: Store },

@@ -5,6 +5,10 @@
   "packageManager": "pnpm@8.15.1",
   "scripts": {
     "dev": "turbo run dev --parallel",
+    "dev:api": "cd apps/api && npm start",
+    "dev:web": "cd apps/web && npm run dev",
+    "start:all": "node start-dev.js",
+    "test:connection": "start test-diagnostics.html",
     "build": "turbo run build",
     "start": "turbo run start",
     "lint": "turbo run lint",

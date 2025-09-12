@@ -12,17 +12,35 @@ const guestRoutes = require('./routes/guests');
 const vendorRoutes = require('./routes/vendors');
 const websiteRoutes = require('./routes/websites');
 const shopRoutes = require('./routes/shop');
+// const paymentRoutes = require('./routes/payments');
+// const esignatureRoutes = require('./routes/esignature');
 
 const app = express();
 const PORT = process.env.PORT || 3001;
 
 // Middleware
 app.use(cors({
-  origin: ['http://localhost:3000', 'http://localhost:3001'],
-  credentials: true
+  origin: function(origin, callback) {
+    // Allow requests with no origin (like mobile apps or Postman)
+    if (!origin) return callback(null, true);
+    
+    // Allow all localhost origins
+    if (origin.includes('localhost') || origin.includes('127.0.0.1')) {
+      return callback(null, true);
+    }
+    
+    // For production, you'd want to be more restrictive
+    callback(null, true);
+  },
+  credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'Accept']
 }));
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
+
+// Handle preflight requests
+app.options('*', cors());
 
 // ==================== ROOT ROUTES ====================
 
@@ -311,6 +329,8 @@ app.use('/api', guestRoutes); // Guests routes include various prefixes
 app.use('/api', vendorRoutes); // Vendors routes
 app.use('/api', websiteRoutes); // Website routes
 app.use('/api', shopRoutes); // Shop routes
+// app.use('/api', paymentRoutes); // Payment routes - disabled until Stripe is installed
+// app.use('/api', esignatureRoutes); // E-signature routes - disabled until dependencies installed
 
 // ==================== STATISTICS ENDPOINT ====================
 

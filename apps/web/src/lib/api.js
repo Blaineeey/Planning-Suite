@@ -38,10 +38,20 @@ class ApiClient {
     const url = `${this.baseURL}${endpoint}`;
     const token = this.getToken();
 
+    // Log the request for debugging
+    console.log('API Request:', {
+      url,
+      method: options.method || 'GET',
+      endpoint
+    });
+
     const config = {
       ...options,
+      mode: 'cors', // Explicitly set CORS mode
+      credentials: 'include', // Include credentials for CORS
       headers: {
         'Content-Type': 'application/json',
+        'Accept': 'application/json',
         ...options.headers,
       },
     };
@@ -53,6 +63,13 @@ class ApiClient {
     try {
       const response = await fetch(url, config);
       
+      // Log response for debugging
+      console.log('API Response:', {
+        status: response.status,
+        ok: response.ok,
+        statusText: response.statusText
+      });
+      
       // Handle non-JSON responses
       const contentType = response.headers.get('content-type');
       let data;
@@ -61,6 +78,12 @@ class ApiClient {
         data = await response.json();
       } else {
         data = await response.text();
+        // Try to parse as JSON if possible
+        try {
+          data = JSON.parse(data);
+        } catch {
+          // Keep as text if not JSON
+        }
       }
       
       if (!response.ok) {
@@ -77,14 +100,27 @@ class ApiClient {
             window.location.href = '/login';
           }
         }
+        console.error('API Error:', data);
         // Return null for failed requests instead of throwing
         return null;
       }
 
       return data;
     } catch (error) {
-      // Network errors - return null instead of throwing
-      console.error('Network error:', error.message);
+      // More detailed error logging
+      console.error('Network error details:', {
+        message: error.message,
+        endpoint,
+        url,
+        error
+      });
+      
+      // Check if it's a CORS error
+      if (error.message === 'Failed to fetch') {
+        console.error('This is likely a CORS issue or the API server is not running.');
+        console.error('Make sure the API server is running on port 3001');
+      }
+      
       return null;
     }
   }
@@ -132,9 +168,13 @@ export const api = {
   // Authentication
   auth: {
     login: async (data) => {
+      console.log('Attempting login with:', { email: data.email });
       const response = await apiClient.post('/api/auth/login', data);
       if (response && response.token) {
         apiClient.setToken(response.token);
+        console.log('Login successful, token stored');
+      } else {
+        console.error('Login failed, no token in response');
       }
       return response;
     },
