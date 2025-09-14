@@ -73,6 +73,24 @@ router.put('/leads/:id', (req, res) => {
   }
 });
 
+// Delete lead
+router.delete('/leads/:id', (req, res) => {
+  try {
+    const result = db.delete('leads', req.params.id);
+    
+    if (!result) {
+      return res.status(404).json({ error: 'Lead not found' });
+    }
+    
+    res.json({
+      success: true,
+      message: 'Lead deleted successfully'
+    });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
 // Convert lead to client
 router.post('/leads/:id/convert', (req, res) => {
   try {
@@ -195,6 +213,60 @@ router.post('/proposals', (req, res) => {
   }
 });
 
+// Get proposal by ID
+router.get('/proposals/:id', (req, res) => {
+  try {
+    const proposal = db.findById('proposals', req.params.id);
+    
+    if (!proposal) {
+      return res.status(404).json({ error: 'Proposal not found' });
+    }
+    
+    res.json({
+      success: true,
+      data: proposal
+    });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Update proposal
+router.put('/proposals/:id', (req, res) => {
+  try {
+    const proposal = db.update('proposals', req.params.id, req.body);
+    
+    if (!proposal) {
+      return res.status(404).json({ error: 'Proposal not found' });
+    }
+    
+    res.json({
+      success: true,
+      data: proposal
+    });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Delete proposal
+router.delete('/proposals/:id', (req, res) => {
+  try {
+    const result = db.delete('proposals', req.params.id);
+    
+    if (!result) {
+      return res.status(404).json({ error: 'Proposal not found' });
+    }
+    
+    res.json({
+      success: true,
+      message: 'Proposal deleted successfully'
+    });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
 // Send proposal
 router.post('/proposals/:id/send', (req, res) => {
   try {
@@ -295,6 +367,60 @@ router.post('/contracts', (req, res) => {
   }
 });
 
+// Get contract by ID
+router.get('/contracts/:id', (req, res) => {
+  try {
+    const contract = db.findById('contracts', req.params.id);
+    
+    if (!contract) {
+      return res.status(404).json({ error: 'Contract not found' });
+    }
+    
+    res.json({
+      success: true,
+      data: contract
+    });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Update contract
+router.put('/contracts/:id', (req, res) => {
+  try {
+    const contract = db.update('contracts', req.params.id, req.body);
+    
+    if (!contract) {
+      return res.status(404).json({ error: 'Contract not found' });
+    }
+    
+    res.json({
+      success: true,
+      data: contract
+    });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Delete contract
+router.delete('/contracts/:id', (req, res) => {
+  try {
+    const result = db.delete('contracts', req.params.id);
+    
+    if (!result) {
+      return res.status(404).json({ error: 'Contract not found' });
+    }
+    
+    res.json({
+      success: true,
+      message: 'Contract deleted successfully'
+    });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
 // Sign contract
 router.post('/contracts/:id/sign', (req, res) => {
   try {
@@ -363,6 +489,60 @@ router.post('/invoices', (req, res) => {
     res.status(201).json({
       success: true,
       data: invoice
+    });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Get invoice by ID
+router.get('/invoices/:id', (req, res) => {
+  try {
+    const invoice = db.findById('invoices', req.params.id);
+    
+    if (!invoice) {
+      return res.status(404).json({ error: 'Invoice not found' });
+    }
+    
+    res.json({
+      success: true,
+      data: invoice
+    });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Update invoice
+router.put('/invoices/:id', (req, res) => {
+  try {
+    const invoice = db.update('invoices', req.params.id, req.body);
+    
+    if (!invoice) {
+      return res.status(404).json({ error: 'Invoice not found' });
+    }
+    
+    res.json({
+      success: true,
+      data: invoice
+    });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Delete invoice
+router.delete('/invoices/:id', (req, res) => {
+  try {
+    const result = db.delete('invoices', req.params.id);
+    
+    if (!result) {
+      return res.status(404).json({ error: 'Invoice not found' });
+    }
+    
+    res.json({
+      success: true,
+      message: 'Invoice deleted successfully'
     });
   } catch (error) {
     res.status(500).json({ error: error.message });

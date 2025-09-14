@@ -4,6 +4,9 @@ import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import DashboardLayout from '@/components/DashboardLayout';
 import LeadForm from '@/components/crm/LeadForm';
+import ProposalForm from '@/components/crm/ProposalForm';
+import ContractForm from '@/components/crm/ContractForm';
+import InvoiceForm from '@/components/crm/InvoiceForm';
 import { api } from '@/lib/api';
 import {
   Users,
@@ -39,6 +42,18 @@ export default function CRMPage() {
   const [editingLead, setEditingLead] = useState(null);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [deletingLead, setDeletingLead] = useState(null);
+  
+  // Proposal form states
+  const [showProposalForm, setShowProposalForm] = useState(false);
+  const [editingProposal, setEditingProposal] = useState(null);
+  
+  // Contract form states
+  const [showContractForm, setShowContractForm] = useState(false);
+  const [editingContract, setEditingContract] = useState(null);
+  
+  // Invoice form states
+  const [showInvoiceForm, setShowInvoiceForm] = useState(false);
+  const [editingInvoice, setEditingInvoice] = useState(null);
 
   useEffect(() => {
     fetchCRMData();
@@ -124,6 +139,96 @@ export default function CRMPage() {
   const handleDeleteClick = (lead) => {
     setDeletingLead(lead);
     setShowDeleteConfirm(true);
+  };
+
+  // CRUD Operations for Proposals
+  const handleCreateProposal = async (proposalData) => {
+    try {
+      const newProposal = await api.crm.proposals.create(proposalData);
+      if (newProposal) {
+        setProposals([newProposal, ...proposals]);
+        setShowProposalForm(false);
+      }
+    } catch (error) {
+      console.error('Failed to create proposal:', error);
+      alert('Failed to create proposal. Please try again.');
+    }
+  };
+
+  const handleUpdateProposal = async (proposalData) => {
+    try {
+      const updatedProposal = await api.crm.proposals.update(editingProposal.id, proposalData);
+      if (updatedProposal) {
+        setProposals(proposals.map(p => 
+          p.id === editingProposal.id ? updatedProposal : p
+        ));
+        setEditingProposal(null);
+        setShowProposalForm(false);
+      }
+    } catch (error) {
+      console.error('Failed to update proposal:', error);
+      alert('Failed to update proposal. Please try again.');
+    }
+  };
+
+  // CRUD Operations for Contracts
+  const handleCreateContract = async (contractData) => {
+    try {
+      const newContract = await api.crm.contracts.create(contractData);
+      if (newContract) {
+        setContracts([newContract, ...contracts]);
+        setShowContractForm(false);
+      }
+    } catch (error) {
+      console.error('Failed to create contract:', error);
+      alert('Failed to create contract. Please try again.');
+    }
+  };
+
+  const handleUpdateContract = async (contractData) => {
+    try {
+      const updatedContract = await api.crm.contracts.update(editingContract.id, contractData);
+      if (updatedContract) {
+        setContracts(contracts.map(c => 
+          c.id === editingContract.id ? updatedContract : c
+        ));
+        setEditingContract(null);
+        setShowContractForm(false);
+      }
+    } catch (error) {
+      console.error('Failed to update contract:', error);
+      alert('Failed to update contract. Please try again.');
+    }
+  };
+
+  // CRUD Operations for Invoices
+  const handleCreateInvoice = async (invoiceData) => {
+    try {
+      const newInvoice = await api.crm.invoices.create(invoiceData);
+      if (newInvoice) {
+        setInvoices([newInvoice, ...invoices]);
+        setShowInvoiceForm(false);
+      }
+    } catch (error) {
+      console.error('Failed to create invoice:', error);
+      alert('Failed to create invoice. Please try again.');
+    }
+  };
+
+  const handleUpdateInvoice = async (invoiceData) => {
+    try {
+      const updatedInvoice = await api.crm.invoices.update(editingInvoice.id, invoiceData);
+      if (updatedInvoice) {
+        setInvoices(invoices.map(i => 
+          i.id === editingInvoice.id ? updatedInvoice : i
+        ));
+        setEditingInvoice(null);
+        setShowInvoiceForm(false);
+      }
+    } catch (error) {
+      console.error('Failed to update invoice:', error);
+      alert('Failed to update invoice. Please try again.');
+    }
   };
 
   const tabs = [
@@ -398,6 +503,19 @@ export default function CRMPage() {
               </div>
             ) : activeTab === 'proposals' ? (
               <div className="space-y-4">
+                <div className="flex justify-between items-center mb-4">
+                  <h3 className="text-lg font-medium text-gray-900">Proposals</h3>
+                  <button
+                    onClick={() => {
+                      setEditingProposal(null);
+                      setShowProposalForm(true);
+                    }}
+                    className="px-4 py-2 bg-gradient-to-r from-pink-500 to-purple-600 text-white rounded-lg hover:from-pink-600 hover:to-purple-700 text-sm"
+                  >
+                    <Plus size={16} className="inline mr-2" />
+                    New Proposal
+                  </button>
+                </div>
                 {proposals.length === 0 ? (
                   <div className="text-center py-12">
                     <FileText size={48} className="text-gray-300 mx-auto mb-4" />
@@ -426,6 +544,19 @@ export default function CRMPage() {
               </div>
             ) : activeTab === 'contracts' ? (
               <div className="space-y-4">
+                <div className="flex justify-between items-center mb-4">
+                  <h3 className="text-lg font-medium text-gray-900">Contracts</h3>
+                  <button
+                    onClick={() => {
+                      setEditingContract(null);
+                      setShowContractForm(true);
+                    }}
+                    className="px-4 py-2 bg-gradient-to-r from-pink-500 to-purple-600 text-white rounded-lg hover:from-pink-600 hover:to-purple-700 text-sm"
+                  >
+                    <Plus size={16} className="inline mr-2" />
+                    New Contract
+                  </button>
+                </div>
                 {contracts.length === 0 ? (
                   <div className="text-center py-12">
                     <FileText size={48} className="text-gray-300 mx-auto mb-4" />
@@ -449,6 +580,19 @@ export default function CRMPage() {
               </div>
             ) : (
               <div className="space-y-4">
+                <div className="flex justify-between items-center mb-4">
+                  <h3 className="text-lg font-medium text-gray-900">Invoices</h3>
+                  <button
+                    onClick={() => {
+                      setEditingInvoice(null);
+                      setShowInvoiceForm(true);
+                    }}
+                    className="px-4 py-2 bg-gradient-to-r from-pink-500 to-purple-600 text-white rounded-lg hover:from-pink-600 hover:to-purple-700 text-sm"
+                  >
+                    <Plus size={16} className="inline mr-2" />
+                    New Invoice
+                  </button>
+                </div>
                 {invoices.length === 0 ? (
                   <div className="text-center py-12">
                     <DollarSign size={48} className="text-gray-300 mx-auto mb-4" />
