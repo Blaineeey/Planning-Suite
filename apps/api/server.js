@@ -122,7 +122,7 @@ app.get('/api/auth/debug', async (req, res) => {
   }
 });
 
-// Register organization owner
+// Register new user with role selection
 app.post('/api/auth/register', async (req, res) => {
   try {
     const { 
@@ -130,9 +130,22 @@ app.post('/api/auth/register', async (req, res) => {
       password, 
       firstName, 
       lastName, 
-      organizationName,
-      phone
+      phone,
+      userType, // 'CLIENT', 'VENDOR', 'PLANNER', 'OWNER'
+      organizationName, // Required for PLANNER and OWNER
+      businessName, // Required for VENDOR
+      businessCategory, // Required for VENDOR
+      eventDate, // Optional for CLIENT
+      partnerName // Optional for CLIENT
     } = req.body;
+    
+    // Validate required fields based on user type
+    if (!email || !password || !firstName || !lastName || !userType) {
+      return res.status(400).json({ 
+        error: 'Missing required fields',
+        required: ['email', 'password', 'firstName', 'lastName', 'userType']
+      });
+    }
     
     // Check if user exists
     const existingUser = db.findAll('users', { email })[0];
@@ -140,49 +153,187 @@ app.post('/api/auth/register', async (req, res) => {
       return res.status(400).json({ error: 'User already exists' });
     }
     
-    // Create organization
-    const organization = db.create('organizations', {
-      name: organizationName,
-      email,
-      phone,
-      primaryColor: '#e91e63',
-      secondaryColor: '#f8bbd0',
-      subdomain: db.generateSlug(organizationName),
-      currency: 'USD',
-      timezone: 'America/New_York',
-      subscription: {
-        plan: 'trial',
-        status: 'active',
-        validUntil: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000) // 30 days trial
-      },
-      settings: {
-        features: {
-          crm: true,
-          projects: true,
-          guests: true,
-          vendors: true,
-          websites: true,
-          shop: true
-        }
-      }
-    });
-    
     // Hash password
     const hashedPassword = await bcrypt.hash(password, 10);
     
-    // Create user
-    const user = db.create('users', {
-      organizationId: organization.id,
-      email,
-      password: hashedPassword,
-      firstName,
-      lastName,
-      phone,
-      role: 'OWNER',
-      permissions: ['all'],
-      isActive: true,
-      emailVerified: false
-    });
+    let user, organization, vendor;
+    
+    switch (userType) {
+      case 'OWNER':
+      case 'PLANNER':
+        // Wedding planner or business owner registration
+        if (!organizationName) {
+          return res.status(400).json({ error: 'Organization name is required for planners' });
+        }
+        
+        // Create organization
+        organization = db.create('organizations', {
+          name: organizationName,
+          email,
+          phone,
+          primaryColor: '#e91e63',
+          secondaryColor: '#f8bbd0',
+          subdomain: db.generateSlug(organizationName),
+          currency: 'USD',
+          timezone: 'America/New_York',
+          subscription: {
+            plan: 'trial',
+            status: 'active',
+            validUntil: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000) // 30 days trial
+          },
+          settings: {
+            features: {
+              crm: true,
+              projects: true,
+              guests: true,
+              vendors: true,
+              websites: true,
+              shop: true
+            }
+          }
+        });
+        
+        // Create user
+        user = db.create('users', {
+          organizationId: organization.id,
+          email,
+          password: hashedPassword,
+          firstName,
+          lastName,
+          phone,
+          role: userType, // OWNER or PLANNER
+          permissions: userType === 'OWNER' ? ['all'] : ['manage_projects', 'manage_clients', 'manage_vendors'],
+          isActive: true,
+          emailVerified: false
+        });
+        break;
+      
+      case 'CLIENT':
+        // Client (couple) registration
+        // Find or create a default organization for clients
+        let clientOrg = db.findAll('organizations', { isDefault: true })[0];
+        if (!clientOrg) {
+          clientOrg = db.create('organizations', {
+            name: 'Ruban Bleu Clients',
+            email: 'clients@rubanbleu.com',
+            isDefault: true,
+            subdomain: 'clients',
+            currency: 'USD',
+            timezone: 'America/New_York',
+            subscription: {
+              plan: 'unlimited',
+              status: 'active'
+            }
+          });
+        }
+        
+        // Create user
+        user = db.create('users', {
+          organizationId: clientOrg.id,
+          email,
+          password: hashedPassword,
+          firstName,
+          lastName,
+          phone,
+          role: 'CLIENT',
+          permissions: ['view_own_project', 'manage_rsvp', 'view_invoices'],
+          isActive: true,
+          emailVerified: false,
+          metadata: {
+            eventDate: eventDate || null,
+            partnerName: partnerName || null
+          }
+        });
+        
+        // Create a project for the client
+        const project = db.create('projects', {
+          organizationId: clientOrg.id,
+          clientId: user.id,
+          name: `${firstName} ${lastName} Wedding`,
+          type: 'WEDDING',
+          status: 'PLANNING',
+          eventDate: eventDate || null,
+          guestCount: 0,
+          budget: 0,
+          package: 'Basic'
+        });
+        
+        organization = clientOrg;
+        break;
+      
+      case 'VENDOR':
+        // Vendor registration
+        if (!businessName || !businessCategory) {
+          return res.status(400).json({ 
+            error: 'Business name and category are required for vendors',
+            required: ['businessName', 'businessCategory']
+          });
+        }
+        
+        // Find or create vendor organization
+        let vendorOrg = db.findAll('organizations', { isVendorDirectory: true })[0];
+        if (!vendorOrg) {
+          vendorOrg = db.create('organizations', {
+            name: 'Ruban Bleu Vendor Directory',
+            email: 'vendors@rubanbleu.com',
+            isVendorDirectory: true,
+            subdomain: 'vendors',
+            currency: 'USD',
+            timezone: 'America/New_York',
+            subscription: {
+              plan: 'unlimited',
+              status: 'active'
+            }
+          });
+        }
+        
+        // Create user
+        user = db.create('users', {
+          organizationId: vendorOrg.id,
+          email,
+          password: hashedPassword,
+          firstName,
+          lastName,
+          phone,
+          role: 'VENDOR',
+          permissions: ['manage_vendor_profile', 'view_leads', 'respond_to_requests'],
+          isActive: true,
+          emailVerified: false
+        });
+        
+        // Create vendor profile
+        vendor = db.create('vendors', {
+          organizationId: vendorOrg.id,
+          userId: user.id,
+          name: businessName,
+          category: businessCategory,
+          email,
+          phone,
+          contactPerson: `${firstName} ${lastName}`,
+          description: '',
+          priceRange: '$',
+          rating: 0,
+          reviewCount: 0,
+          featured: false,
+          verified: false,
+          status: 'PENDING_APPROVAL',
+          services: [],
+          portfolio: [],
+          availability: {},
+          serviceAreas: [],
+          insurance: false,
+          licenses: []
+        });
+        
+        organization = vendorOrg;
+        break;
+      
+      default:
+        return res.status(400).json({ 
+          error: 'Invalid user type',
+          validTypes: ['CLIENT', 'VENDOR', 'PLANNER', 'OWNER']
+        });
+    }
     
     // Generate token
     const token = jwt.sign(
@@ -190,20 +341,23 @@ app.post('/api/auth/register', async (req, res) => {
         userId: user.id, 
         email: user.email,
         organizationId: organization.id,
-        role: user.role
+        role: user.role,
+        vendorId: vendor?.id
       },
       process.env.JWT_SECRET || 'development-secret-key',
       { expiresIn: '7d' }
     );
     
-    res.status(201).json({
+    // Prepare response
+    const response = {
       success: true,
       user: {
         id: user.id,
         email: user.email,
         firstName: user.firstName,
         lastName: user.lastName,
-        role: user.role
+        role: user.role,
+        userType: userType
       },
       organization: {
         id: organization.id,
@@ -211,11 +365,42 @@ app.post('/api/auth/register', async (req, res) => {
         subdomain: organization.subdomain
       },
       token
-    });
+    };
+    
+    // Add vendor info if applicable
+    if (vendor) {
+      response.vendor = {
+        id: vendor.id,
+        name: vendor.name,
+        category: vendor.category,
+        status: vendor.status
+      };
+    }
+    
+    res.status(201).json(response);
   } catch (error) {
     console.error('Register error:', error);
     res.status(500).json({ error: 'Registration failed', details: error.message });
   }
+});
+
+// Quick registration endpoints for specific user types
+app.post('/api/auth/register/client', async (req, res) => {
+  // Forward to main register with userType set to CLIENT
+  req.body.userType = 'CLIENT';
+  return app._router.handle(req, res, () => {});
+});
+
+app.post('/api/auth/register/vendor', async (req, res) => {
+  // Forward to main register with userType set to VENDOR
+  req.body.userType = 'VENDOR';
+  return app._router.handle(req, res, () => {});
+});
+
+app.post('/api/auth/register/planner', async (req, res) => {
+  // Forward to main register with userType set to PLANNER
+  req.body.userType = 'PLANNER';
+  return app._router.handle(req, res, () => {});
 });
 
 // Login

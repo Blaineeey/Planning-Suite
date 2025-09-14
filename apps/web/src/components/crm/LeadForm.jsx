@@ -81,6 +81,7 @@ export default function LeadForm({ isOpen, onClose, onSubmit, lead = null }) {
                   errors.firstName ? 'border-red-500' : 'border-gray-300'
                 }`}
                 placeholder="John"
+                required
               />
             </div>
             {errors.firstName && (
@@ -103,6 +104,7 @@ export default function LeadForm({ isOpen, onClose, onSubmit, lead = null }) {
                   errors.lastName ? 'border-red-500' : 'border-gray-300'
                 }`}
                 placeholder="Doe"
+                required
               />
             </div>
             {errors.lastName && (
@@ -128,6 +130,7 @@ export default function LeadForm({ isOpen, onClose, onSubmit, lead = null }) {
                   errors.email ? 'border-red-500' : 'border-gray-300'
                 }`}
                 placeholder="john@example.com"
+                required
               />
             </div>
             {errors.email && (
@@ -150,6 +153,7 @@ export default function LeadForm({ isOpen, onClose, onSubmit, lead = null }) {
                   errors.phone ? 'border-red-500' : 'border-gray-300'
                 }`}
                 placeholder="555-0123"
+                required
               />
             </div>
             {errors.phone && (
@@ -300,26 +304,26 @@ export default function LeadForm({ isOpen, onClose, onSubmit, lead = null }) {
             name="message"
             value={formData.message}
             onChange={handleChange}
-            rows={4}
+            rows={3}
             className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent text-gray-900"
             placeholder="Additional information..."
           />
         </div>
 
-        {/* Form Actions */}
-        <div className="flex justify-end space-x-3 pt-4">
+        {/* Form Actions - VISIBLE BUTTONS */}
+        <div className="flex justify-end space-x-3 pt-6 mt-6 border-t border-gray-200">
           <button
             type="button"
             onClick={onClose}
-            className="px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50"
+            className="px-6 py-2.5 bg-white border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 font-medium transition-colors focus:outline-none focus:ring-2 focus:ring-gray-500"
           >
             Cancel
           </button>
           <button
             type="submit"
-            className="px-4 py-2 bg-gradient-to-r from-pink-500 to-purple-600 text-white rounded-lg hover:from-pink-600 hover:to-purple-700"
+            className="px-6 py-2.5 bg-gradient-to-r from-pink-500 to-purple-600 text-white rounded-lg hover:from-pink-600 hover:to-purple-700 font-medium transition-all shadow-lg hover:shadow-xl focus:outline-none focus:ring-2 focus:ring-purple-500"
           >
-            {lead ? 'Update Lead' : 'Add Lead'}
+            {lead ? 'Update Lead' : 'Create Lead'}
           </button>
         </div>
       </form>

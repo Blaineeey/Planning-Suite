@@ -240,7 +240,10 @@ export const api = {
   // Guests
   guests: {
     list: (projectId) => apiClient.get(`/api/projects/${projectId}/guests`) || [],
-    create: (projectId, data) => apiClient.post(`/api/projects/${projectId}/guests`, data),
+    create: (data) => {
+      const { projectId, ...guestData } = data;
+      return apiClient.post(`/api/projects/${projectId}/guests`, guestData);
+    },
     get: (id) => apiClient.get(`/api/guests/${id}`),
     update: (id, data) => apiClient.put(`/api/guests/${id}`, data),
     delete: (id) => apiClient.delete(`/api/guests/${id}`),
