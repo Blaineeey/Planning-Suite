@@ -17,7 +17,13 @@ export default function LoginPage() {
 
   useEffect(() => {
     if (isAuthenticated) {
-      router.push('/dashboard');
+      // Get user from store to check role
+      const { user } = useAuthStore.getState();
+      if (user?.role === 'CLIENT') {
+        router.push('/client/dashboard');
+      } else {
+        router.push('/dashboard');
+      }
     }
   }, [isAuthenticated, router]);
 
@@ -37,7 +43,14 @@ export default function LoginPage() {
     const result = await login(formData.email, formData.password);
     
     if (result.success) {
-      router.push('/dashboard');
+      // Role-based redirection
+      if (result.user?.role === 'CLIENT') {
+        router.push('/client/dashboard');
+      } else if (['ADMIN', 'OWNER', 'PLANNER'].includes(result.user?.role)) {
+        router.push('/dashboard');
+      } else {
+        router.push('/');
+      }
     } else {
       setFormError(result.error || 'Invalid email or password');
     }
@@ -59,6 +72,7 @@ export default function LoginPage() {
     });
     const result = await login('demo@example.com', 'demo123');
     if (result.success) {
+      // Demo user is an OWNER, redirect to admin dashboard
       router.push('/dashboard');
     } else {
       setFormError('Demo account not available. Please register a new account.');
